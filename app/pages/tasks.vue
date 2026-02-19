@@ -69,7 +69,8 @@ const showCreateModal = ref(false)
 
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
-  queryFn: () => $fetch<any[]>('/api/tasks')
+  queryFn: () => $fetch<any[]>('/api/tasks'),
+  refetchInterval: 10000 // Auto-refresh every 10s
 })
 
 const tasksByStatus = computed(() => {
