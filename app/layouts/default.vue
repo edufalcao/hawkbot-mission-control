@@ -15,7 +15,7 @@
 
       <!-- Nav -->
       <nav class="flex-1 px-3 py-4 space-y-1">
-        <NavItem to="/tasks" icon="i-lucide-layout-kanban" label="Tasks" />
+        <NavItem to="/tasks" icon="i-lucide-kanban" label="Tasks" />
         <NavItem to="/calendar" icon="i-lucide-calendar" label="Calendar" />
         <NavItem to="/content" icon="i-lucide-film" label="Content Pipeline" />
         <NavItem to="/memory" icon="i-lucide-brain" label="Memory" />

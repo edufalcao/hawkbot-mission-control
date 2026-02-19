@@ -1,6 +1,6 @@
 <template>
   <div class="bg-gray-800 border border-gray-700 rounded-lg p-3 hover:border-gray-500 transition-colors group">
-    <!-- Priority indicator + assignee -->
+    <!-- Priority + assignee -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-1.5">
         <span
@@ -9,11 +9,11 @@
           :class="{
             'bg-red-500': task.priority === 'high',
             'bg-amber-500': task.priority === 'medium',
-            'bg-blue-500': task.priority === 'low'
+            'bg-blue-400': task.priority === 'low'
           }"
         />
         <UBadge
-          :color="task.assignee === 'hawkbot' ? 'violet' : 'gray'"
+          :color="task.assignee === 'hawkbot' ? 'violet' : 'neutral'"
           size="xs"
           variant="subtle"
         >
@@ -21,10 +21,10 @@
         </UBadge>
       </div>
 
-      <!-- Actions (visible on hover) -->
-      <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+      <!-- Actions -->
+      <div class="opacity-0 group-hover:opacity-100 transition-opacity">
         <UDropdownMenu :items="actionItems">
-          <UButton icon="i-lucide-more-horizontal" color="gray" variant="ghost" size="xs" />
+          <UButton icon="i-lucide-more-horizontal" color="neutral" variant="ghost" size="xs" />
         </UDropdownMenu>
       </div>
     </div>
@@ -32,28 +32,20 @@
     <!-- Title -->
     <p class="text-sm text-gray-100 font-medium leading-snug mb-2">{{ task.title }}</p>
 
-    <!-- Description preview -->
+    <!-- Description -->
     <p v-if="task.description" class="text-xs text-gray-400 mb-2 line-clamp-2">
       {{ task.description }}
     </p>
 
     <!-- Tags -->
     <div v-if="task.tags?.length" class="flex flex-wrap gap-1 mb-2">
-      <UBadge
-        v-for="tag in task.tags"
-        :key="tag"
-        color="gray"
-        size="xs"
-        variant="solid"
-      >
+      <UBadge v-for="tag in task.tags" :key="tag" color="neutral" size="xs" variant="solid">
         {{ tag }}
       </UBadge>
     </div>
 
     <!-- Date -->
-    <p class="text-xs text-gray-500">
-      {{ formatDate(task.createdAt) }}
-    </p>
+    <p class="text-xs text-gray-500">{{ formatDate(task.createdAt) }}</p>
   </div>
 </template>
 
@@ -76,30 +68,31 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-  todo: ['in_progress'],
-  in_progress: ['review', 'done'],
-  review: ['in_progress', 'done'],
+const STATUS_NEXT: Record<string, { label: string; value: string }[]> = {
+  todo: [{ label: '⚡ Start', value: 'in_progress' }],
+  in_progress: [
+    { label: '👀 Send to Review', value: 'review' },
+    { label: '✅ Mark Done', value: 'done' }
+  ],
+  review: [
+    { label: '⚡ Back to In Progress', value: 'in_progress' },
+    { label: '✅ Mark Done', value: 'done' }
+  ],
   done: []
 }
 
 const actionItems = computed(() => {
-  const transitions = STATUS_TRANSITIONS[props.task.status] || []
-  const STATUS_LABELS: Record<string, string> = {
-    in_progress: '⚡ Move to In Progress',
-    review: '👀 Move to Review',
-    done: '✅ Mark as Done'
-  }
-
+  const transitions = STATUS_NEXT[props.task.status] || []
   return [
-    ...transitions.map(s => ({
-      label: STATUS_LABELS[s],
-      click: () => emit('update', { id: props.task.id, status: s })
+    ...transitions.map(t => ({
+      label: t.label,
+      onSelect: () => emit('update', { id: props.task.id, status: t.value })
     })),
     ...(transitions.length ? [{ type: 'separator' as const }] : []),
     {
       label: '🗑 Delete',
-      click: () => emit('delete', props.task.id)
+      class: 'text-red-400',
+      onSelect: () => emit('delete', props.task.id)
     }
   ]
 })
