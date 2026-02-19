@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 
 const COLUMNS = [
@@ -70,7 +71,14 @@ const showCreateModal = ref(false)
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
   queryFn: () => $fetch<any[]>('/api/tasks'),
-  refetchInterval: 10000 // Auto-refresh every 10s
+  refetchInterval: 10000,
+  refetchIntervalInBackground: true
+})
+
+// Fallback: manual polling every 10s
+onMounted(() => {
+  const timer = setInterval(() => refetch(), 10000)
+  onUnmounted(() => clearInterval(timer))
 })
 
 const tasksByStatus = computed(() => {
