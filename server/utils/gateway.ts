@@ -17,11 +17,11 @@ export function connectGateway() {
     return
   }
 
-  const wsUrl = token ? `${url}?token=${token}` : url
-
   console.log(`[gateway] Connecting to ${url}...`)
 
-  _ws = new WebSocket(wsUrl)
+  _ws = new WebSocket(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
 
   _ws.on('open', () => {
     console.log('[gateway] Connected ✅')

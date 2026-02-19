@@ -6,7 +6,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "nuxt prepare && npx node-gyp rebuild --directory node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3 || true",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck"
   },
