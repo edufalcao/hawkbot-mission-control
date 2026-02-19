@@ -1,15 +1,15 @@
 # 🦅 HawkBot Mission Control
 
-> Dashboard de gestão de agentes para o OpenClaw — Tasks, Calendar, Memory, Team e Office em uma única interface.
+> Agent management dashboard for OpenClaw — Tasks, Calendar, Memory, Team, and Office in a single interface.
 
-Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, conectado ao **OpenClaw Gateway** via WebSocket.
+Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, connected to the **OpenClaw Gateway** via WebSocket.
 
 ---
 
 ## Stack
 
-| Camada | Tecnologia |
-|--------|-----------|
+| Layer | Technology |
+|-------|------------|
 | Framework | Nuxt 3 |
 | UI Components | Nuxt UI |
 | Data Fetching | TanStack Query (`@tanstack/vue-query`) |
@@ -23,21 +23,21 @@ Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 
 ## Features
 
-- **Tasks Board** — Kanban com 4 colunas: To Do, In Progress, Review, Done. Assignee por agente ou usuário.
-- **Calendar** — Visualização de todos os cron jobs do OpenClaw Gateway.
-- **Memory** — Browser visual para todos os arquivos de memória do workspace (`.md`), com busca.
-- **Team** — Roster de agentes com status em tempo real, model, especialidades e estatísticas.
-- **Office** — Visualização gamificada dos agentes trabalhando em seus desktops.
-- **Content Pipeline** — *(Phase 2)* Pipeline de criação de conteúdo: Idea → Script → Thumbnail → Published.
-- **Live Feed** — Stream de eventos em tempo real via SSE conectado ao Gateway.
+- **Tasks Board** — Kanban with 4 columns: To Do, In Progress, Review, Done. Assignee per agent or user.
+- **Calendar** — Visualization of all cron jobs from the OpenClaw Gateway.
+- **Memory** — Visual browser for all memory files in the workspace (`.md`), with search.
+- **Team** — Agent roster with real-time status, model, specialties, and stats.
+- **Office** — Gamified view of agents working at their desktops.
+- **Content Pipeline** — *(Phase 2)* Content creation pipeline: Idea → Script → Thumbnail → Published.
+- **Live Feed** — Real-time event stream via SSE connected to the Gateway.
 
 ---
 
-## Pré-requisitos
+## Prerequisites
 
-- Node.js v18+
-- pnpm v8+
-- [OpenClaw](https://github.com/openclaw/openclaw) instalado e gateway rodando
+- Node.js v24+
+- pnpm v10+
+- [OpenClaw](https://github.com/openclaw/openclaw) installed and gateway running
 
 ---
 
@@ -48,80 +48,80 @@ Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 git clone <repo-url>
 cd hawkbot-mission-control
 
-# Instalar dependências (inclui compilar better-sqlite3)
+# Install dependencies (includes compiling better-sqlite3)
 pnpm install
 
-# Configurar variáveis de ambiente
+# Configure environment variables
 cp .env.example .env
-# Editar .env com a URL e token do seu gateway
+# Edit .env with your gateway URL and token
 ```
 
-### Variáveis de ambiente
+### Environment variables
 
 ```env
-# URL do OpenClaw Gateway (WebSocket)
+# OpenClaw Gateway URL (WebSocket)
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
 
-# Token de autenticação do Gateway
-# Encontrado em: ~/.openclaw/openclaw.json → gateway.auth.token
-OPENCLAW_GATEWAY_TOKEN=seu-token-aqui
+# Gateway authentication token
+# Found at: ~/.openclaw/openclaw.json → gateway.auth.token
+OPENCLAW_GATEWAY_TOKEN=your-token-here
 
-# Caminho do banco de dados SQLite
+# SQLite database path
 DATABASE_PATH=./data/mission-control.db
 
-# Caminho do workspace do OpenClaw
-WORKSPACE_PATH=/Users/seu-usuario/.openclaw/workspace
+# OpenClaw workspace path
+WORKSPACE_PATH=/Users/your-user/.openclaw/workspace
 ```
 
 ---
 
-## Rodar
+## Running
 
 ```bash
-# Dev (porta 4000)
+# Dev (port 4000)
 pnpm dev
 # → http://localhost:4000
 
-# Build para produção
+# Production build
 pnpm build
 
-# Preview do build
+# Preview build
 pnpm preview
 
-# Rodar em produção com PM2
+# Run in production with PM2
 pm2 start "pnpm preview" --name mission-control
 ```
 
 ---
 
-## Estrutura
+## Structure
 
 ```
 hawkbot-mission-control/
 ├── app/
-│   ├── pages/              # Rotas: tasks, calendar, memory, team, office, content
+│   ├── pages/              # Routes: tasks, calendar, memory, team, office, content
 │   ├── components/
 │   │   ├── tasks/          # TaskCard, TaskCreateModal
 │   │   └── NavItem.vue     # Sidebar navigation item
 │   ├── layouts/
-│   │   └── default.vue     # Layout com sidebar
+│   │   └── default.vue     # Layout with sidebar
 │   └── plugins/
 │       └── vue-query.ts    # TanStack Query setup
 ├── server/
 │   ├── api/
-│   │   ├── tasks/          # CRUD de tasks (GET, POST, PATCH, DELETE)
-│   │   ├── calendar/       # Cron jobs do Gateway
-│   │   ├── memory/         # Browser de arquivos .md do workspace
-│   │   ├── team/           # Agentes (team members)
-│   │   └── activity/       # Log de atividade + SSE stream
+│   │   ├── tasks/          # CRUD for tasks (GET, POST, PATCH, DELETE)
+│   │   ├── calendar/       # Gateway cron jobs
+│   │   ├── memory/         # .md workspace file browser
+│   │   ├── team/           # Agents (team members)
+│   │   └── activity/       # Activity log + SSE stream
 │   ├── db/
-│   │   ├── schema.ts       # Schema Drizzle (tasks, content, team, activity)
-│   │   └── index.ts        # Conexão SQLite + migrations automáticas
+│   │   ├── schema.ts       # Drizzle schema (tasks, content, team, activity)
+│   │   └── index.ts        # SQLite connection + automatic migrations
 │   ├── plugins/
-│   │   └── startup.ts      # Inicialização: conecta gateway, seed team
+│   │   └── startup.ts      # Initialization: connects gateway, seeds team
 │   └── utils/
 │       ├── gateway.ts      # WebSocket client + SSE broadcast
-│       └── seed.ts         # Seed dos agentes padrão
+│       └── seed.ts         # Default agent seeding
 ├── data/                   # SQLite database (gitignored)
 ├── .env.example
 └── nuxt.config.ts
@@ -129,19 +129,19 @@ hawkbot-mission-control/
 
 ---
 
-## Agentes padrão (auto-seeded)
+## Default Agents (auto-seeded)
 
-| Agente | Role | Model | Especialidade |
-|--------|------|-------|--------------|
-| 🦅 HawkBot | assistant | sonnet | Orquestração, planejamento, memória |
-| 💻 Dev Agent | developer | sonnet | JS, Nuxt, TypeScript, Node |
-| 🔍 Research Agent | researcher | gemini-flash | Web search, análise |
-| ⚙️ Ops Agent | operator | minimax | Cron, monitoring, infra |
-| ✍️ Writer Agent | writer | sonnet | Docs, relatórios, posts |
+| Agent | Role | Model | Specialties |
+|-------|------|-------|-------------|
+| 🦅 HawkBot | assistant | claude-sonnet | Orchestration, planning, memory |
+| 💻 Dev Agent | developer | claude-sonnet | JS, Nuxt, TypeScript, Node |
+| 🔍 Research Agent | researcher | claude-sonnet | Web search, analysis, summarization |
+| ⚙️ Ops Agent | operator | claude-sonnet | Cron, monitoring, infra, automation |
+| ✍️ Writer Agent | writer | claude-sonnet | Docs, reports, posts, scripts |
 
 ---
 
-## Docker *(em breve)*
+## Docker *(coming soon)*
 
 ```bash
 docker compose up -d
@@ -155,13 +155,13 @@ docker compose up -d
 - [x] Calendar (cron jobs sync)
 - [x] Memory browser (workspace .md files)
 - [x] Team view (agents)
-- [x] Office view (gamificado)
+- [x] Office view (gamified)
 - [x] Live Feed (SSE)
 - [ ] Content Pipeline (Phase 2)
-- [ ] Drag-and-drop no Kanban (Phase 2)
-- [ ] Notificações Telegram ao mover tasks (Phase 2)
+- [ ] Drag-and-drop on Kanban (Phase 2)
+- [ ] Telegram notifications on task move (Phase 2)
 - [ ] Docker Compose (Phase 3)
 
 ---
 
-*Parte do projeto [Mission Control](https://x.com/AlexFinn/status/2024169334344679783) — inspirado por Alex Finn (@AlexFinn)*
+*Part of the [Mission Control](https://x.com/AlexFinn/status/2024169334344679783) project — inspired by Alex Finn (@AlexFinn)*
