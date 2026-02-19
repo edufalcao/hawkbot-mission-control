@@ -33,6 +33,14 @@ export default defineEventHandler(async () => {
       
       _dispatching.add(task.id)
       console.log(`[watcher] Dispatching: ${task.title}`)
+
+      // Mark as in_progress IMMEDIATELY to prevent re-dispatch on next cycle
+      const now = new Date().toISOString()
+      await db.update(tasks).set({
+        status: 'in_progress',
+        dispatchedAt: now,
+        updatedAt: now
+      }).where(eq(tasks.id, task.id))
       
       const prompt = buildPrompt(task)
       
@@ -69,12 +77,6 @@ function dispatchTaskAsync(task: any, prompt: string, onDone?: () => void) {
     if (code === 0) {
       console.log(`[watcher] ✅ Success: ${task.title}`)
       
-      await db.update(tasks).set({
-        status: 'in_progress',
-        dispatchedAt: now,
-        updatedAt: now
-      }).where(eq(tasks.id, task.id))
-      
       await db.insert(activityLog).values({
         id: uuidv4(),
         type: 'agent_started',
@@ -87,6 +89,13 @@ function dispatchTaskAsync(task: any, prompt: string, onDone?: () => void) {
     }
     else {
       console.error(`[watcher] ❌ Failed: ${task.title}`, stderr || stdout)
+      // Revert to todo so it can be retried
+      const db2 = useDb()
+      await db2.update(tasks).set({
+        status: 'todo',
+        dispatchedAt: null,
+        updatedAt: new Date().toISOString()
+      }).where(eq(tasks.id, task.id))
     }
   })
   
