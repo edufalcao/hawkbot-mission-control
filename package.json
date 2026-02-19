@@ -1,0 +1,38 @@
+{
+  "name": "hawkbot-mission-control",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.90",
+    "@iconify-json/simple-icons": "^1.2.70",
+    "@nuxt/ui": "^4.4.0",
+    "@pinia/nuxt": "^0.11.3",
+    "@tanstack/vue-query": "^5.92.9",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-kit": "^0.31.9",
+    "drizzle-orm": "^0.45.1",
+    "nuxt": "^4.3.1",
+    "pinia": "^3.0.4",
+    "tailwindcss": "^4.1.18",
+    "uuid": "^13.0.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.15.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/uuid": "^11.0.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^10.0.0",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.29.3"
+}
