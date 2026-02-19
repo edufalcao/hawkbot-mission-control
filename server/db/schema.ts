@@ -11,7 +11,9 @@ export const tasks = sqliteTable('tasks', {
   tags: text('tags').default('[]'), // JSON array
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
-  completedAt: text('completed_at')
+  completedAt: text('completed_at'),
+  sessionKey: text('session_key'),       // OpenClaw session key tracking this task
+  dispatchedAt: text('dispatched_at')    // When it was last dispatched
 })
 
 // Content Pipeline

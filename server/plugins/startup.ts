@@ -11,4 +11,5 @@ export default defineNitroPlugin(async () => {
   await seedDefaultTeam()
 
   console.log('[startup] Ready ✅')
+  console.log('[startup] Task watcher will run every 60s for @hawkbot tasks')
 })

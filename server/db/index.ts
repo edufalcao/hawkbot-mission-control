@@ -41,7 +41,9 @@ function runMigrations(sqlite: Database.Database) {
       tags TEXT DEFAULT '[]',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      completed_at TEXT
+      completed_at TEXT,
+      session_key TEXT,
+      dispatched_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS content_items (
