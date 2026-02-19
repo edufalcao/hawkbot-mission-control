@@ -2,7 +2,7 @@
 
 > Agent management dashboard for OpenClaw — Tasks, Calendar, Memory, Team, and Office in a single interface.
 
-Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, connected to the **OpenClaw Gateway** via WebSocket.
+Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, connected to the **OpenClaw Gateway** via WebSocket.
 
 ---
 
@@ -10,7 +10,7 @@ Built with **Nuxt 3** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Nuxt 3 |
+| Framework | Nuxt 4 |
 | UI Components | Nuxt UI |
 | Data Fetching | TanStack Query (`@tanstack/vue-query`) |
 | State | Pinia |
