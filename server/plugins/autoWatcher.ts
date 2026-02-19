@@ -14,17 +14,18 @@ let _intervalId: ReturnType<typeof setInterval> | null = null
 export default defineNitroPlugin(() => {
   console.log('[autoWatcher] Starting automatic task watcher (every 60s)...')
 
-  // Run first cycle after 10 seconds
-  setTimeout(runWatcherCycle, 10 * 1000)
+  // Run first cycle immediately (but async to not block startup)
+  Promise.resolve().then(() => runWatcherCycle())
 
   // Then run every 60 seconds
   _intervalId = setInterval(runWatcherCycle, INTERVAL_MS)
 })
 
 async function runWatcherCycle() {
-  const db = useDb()
+  console.log('[autoWatcher] Running cycle...')
 
   try {
+    const db = useDb()
     // Find hawkbot tasks that need work
     const pending = await db.select().from(tasks).where(
       and(
