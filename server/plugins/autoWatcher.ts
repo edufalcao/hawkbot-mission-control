@@ -1,5 +1,5 @@
 import { useDb } from '../db'
-import { tasks } from '../db/schema'
+import { tasks, team } from '../db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { spawn } from 'node:child_process'
 
@@ -26,12 +26,9 @@ async function runWatcherCycle() {
 
   try {
     const db = useDb()
-    // Find hawkbot tasks that need work
+    // Find any tasks that need work (assignee can be any agent name)
     const pending = await db.select().from(tasks).where(
-      and(
-        eq(tasks.assignee, 'hawkbot'),
-        inArray(tasks.status, ACTIONABLE_STATUSES)
-      )
+      inArray(tasks.status, ACTIONABLE_STATUSES)
     )
 
     if (!pending.length) return
@@ -56,7 +53,10 @@ async function runWatcherCycle() {
         }).where(eq(tasks.id, task.id))
 
         console.log(`[autoWatcher] Dispatching: ${task.title}`)
-        dispatchBackground(task)
+
+        // Look up agent info from team table
+        const agent = await db.select().from(team).where(eq(team.name, task.assignee)).limit(1)
+        dispatchBackground(task, agent[0] || null)
       }
     }
   }
@@ -65,8 +65,8 @@ async function runWatcherCycle() {
   }
 }
 
-function dispatchBackground(task: any) {
-  const prompt = buildPrompt(task)
+function dispatchBackground(task: any, agent: any) {
+  const prompt = buildPrompt(task, agent)
   const escaped = prompt.replace(/"/g, '\\"')
   const cmd = `openclaw agent --session-id ${MAIN_SESSION_ID} --message "${escaped}"`
 
@@ -96,8 +96,10 @@ function dispatchBackground(task: any) {
   })
 }
 
-function buildPrompt(task: any): string {
-  return `Nova task no Mission Control:
+function buildPrompt(task: any, agent: any): string {
+  const agentInfo = agent ? `\n📋 **Agente:** ${agent.emoji} ${agent.name}\n🎯 **Especialidades:** ${agent.specialties.join(', ')}` : ''
+
+  return `Nova task no Mission Control:${agentInfo}
 
 **${task.title}**
 ${task.description || ''}
