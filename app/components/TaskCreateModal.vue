@@ -1,7 +1,9 @@
 <template>
-  <UModal v-model:open="open" title="New Task">
-    <template #body>
-      <div class="space-y-4">
+  <UModal v-model:open="open">
+    <template #content>
+      <div class="p-6 space-y-4">
+        <h2 class="text-lg font-bold text-white">New Task</h2>
+
         <UFormField label="Title" required>
           <UInput
             v-model="form.title"
@@ -46,21 +48,21 @@
             class="w-full"
           />
         </UFormField>
-      </div>
-    </template>
 
-    <template #footer>
-      <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="open = false">
-          Cancel
-        </UButton>
-        <UButton
-          :loading="loading"
-          :disabled="!form.title.trim()"
-          @click="submit"
-        >
-          Create Task
-        </UButton>
+        <p v-if="error" class="text-xs text-red-400">{{ error }}</p>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <UButton color="neutral" variant="ghost" @click="open = false">
+            Cancel
+          </UButton>
+          <UButton
+            :loading="loading"
+            :disabled="!form.title.trim()"
+            @click="submit"
+          >
+            Create Task
+          </UButton>
+        </div>
       </div>
     </template>
   </UModal>
@@ -71,6 +73,7 @@ const open = defineModel<boolean>()
 const emit = defineEmits<{ created: [] }>()
 
 const loading = ref(false)
+const error = ref('')
 const tagsInput = ref('')
 
 const form = reactive({
@@ -95,6 +98,8 @@ const priorityOptions = [
 async function submit() {
   if (!form.title.trim()) return
   loading.value = true
+  error.value = ''
+
   try {
     await $fetch('/api/tasks', {
       method: 'POST',
@@ -107,6 +112,9 @@ async function submit() {
     open.value = false
     resetForm()
   }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Failed to create task. Try again.'
+  }
   finally {
     loading.value = false
   }
@@ -118,5 +126,6 @@ function resetForm() {
   form.assignee = 'eduardo'
   form.priority = 'none'
   tagsInput.value = ''
+  error.value = ''
 }
 </script>

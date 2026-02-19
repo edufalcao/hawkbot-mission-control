@@ -84,4 +84,13 @@ function runMigrations(sqlite: Database.Database) {
       created_at TEXT NOT NULL
     );
   `)
+
+  // Additive migrations for existing databases (ALTER TABLE is idempotent via try/catch)
+  const alterations = [
+    'ALTER TABLE tasks ADD COLUMN session_key TEXT',
+    'ALTER TABLE tasks ADD COLUMN dispatched_at TEXT'
+  ]
+  for (const sql of alterations) {
+    try { sqlite.exec(sql) } catch { /* column already exists */ }
+  }
 }

@@ -11,20 +11,17 @@
       </UButton>
     </div>
 
-    <!-- Kanban columns -->
+    <!-- Loading -->
     <div v-if="pending" class="flex gap-5 overflow-x-auto pb-4">
       <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
         <div class="h-8 bg-gray-800 rounded animate-pulse mb-3" />
-        <div v-for="i in 3" :key="i" class="h-24 bg-gray-800 rounded-lg animate-pulse mb-2" />
+        <div v-for="i in 2" :key="i" class="h-24 bg-gray-800 rounded-lg animate-pulse mb-2" />
       </div>
     </div>
 
+    <!-- Kanban board -->
     <div v-else class="flex gap-5 overflow-x-auto pb-4">
-      <div
-        v-for="col in COLUMNS"
-        :key="col.id"
-        class="flex-shrink-0 w-72"
-      >
+      <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
         <!-- Column header -->
         <div class="flex items-center gap-2 mb-3 px-1">
           <span class="text-lg">{{ col.emoji }}</span>
@@ -40,49 +37,45 @@
             v-for="task in tasksByStatus[col.id]"
             :key="task.id"
             :task="task"
-            @update="updateTask"
-            @delete="deleteTask"
+            @update="handleUpdate"
+            @delete="handleDelete"
           />
           <div
             v-if="!tasksByStatus[col.id]?.length"
             class="border border-dashed border-gray-700 rounded-lg p-4 text-center text-xs text-gray-500"
           >
-            No tasks
+            Empty
           </div>
         </div>
       </div>
     </div>
 
     <!-- Create Task Modal -->
-    <TaskCreateModal
-      v-model="showCreateModal"
-      @created="refetch"
-    />
+    <TaskCreateModal v-model="showCreateModal" @created="refetch" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 
 const COLUMNS = [
-  { id: 'todo', label: 'To Do', emoji: '📋', color: 'gray' as const },
-  { id: 'in_progress', label: 'In Progress', emoji: '⚡', color: 'amber' as const },
-  { id: 'review', label: 'Review', emoji: '👀', color: 'blue' as const },
-  { id: 'done', label: 'Done', emoji: '✅', color: 'green' as const }
+  { id: 'todo', label: 'To Do', emoji: '📋', color: 'neutral' as const },
+  { id: 'in_progress', label: 'In Progress', emoji: '⚡', color: 'warning' as const },
+  { id: 'review', label: 'Review', emoji: '👀', color: 'info' as const },
+  { id: 'done', label: 'Done', emoji: '✅', color: 'success' as const }
 ]
 
 const showCreateModal = ref(false)
-const queryClient = useQueryClient()
 
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
-  queryFn: () => $fetch('/api/tasks')
+  queryFn: () => $fetch<any[]>('/api/tasks')
 })
 
 const tasksByStatus = computed(() => {
-  const map: Record<string, typeof tasks.value> = {}
+  const map: Record<string, any[]> = {}
   for (const col of COLUMNS) {
-    map[col.id] = (tasks.value || []).filter((t: any) => t.status === col.id)
+    map[col.id] = (tasks.value || []).filter(t => t.status === col.id)
   }
   return map
 })
@@ -90,13 +83,13 @@ const tasksByStatus = computed(() => {
 const totalTasks = computed(() => tasks.value?.length || 0)
 const doneTasks = computed(() => tasksByStatus.value['done']?.length || 0)
 
-const { mutate: updateTask } = useMutation({
-  mutationFn: ({ id, ...data }: any) => $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data }),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
-})
+async function handleUpdate({ id, ...data }: any) {
+  await $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data })
+  await refetch()
+}
 
-const { mutate: deleteTask } = useMutation({
-  mutationFn: (id: string) => $fetch(`/api/tasks/${id}`, { method: 'DELETE' }),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
-})
+async function handleDelete(id: string) {
+  await $fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+  await refetch()
+}
 </script>
