@@ -51,7 +51,7 @@
             draggable="true"
             class="cursor-grab active:cursor-grabbing select-none outline-none focus:outline-none"
             style="-webkit-user-drag: element; user-select: none;"
-            :class="draggingId === task.id ? 'opacity-40 scale-95' : 'opacity-100'"
+            :class="draggingId === task.id ? 'opacity-40' : 'opacity-100'"
             @dragstart="onDragStart(task)"
             @dragend="onDragEnd"
           >
@@ -144,11 +144,13 @@ function onDragLeave(colId: string) {
 
 async function onDrop(colId: string) {
   dragOverCol.value = null
-  if (!draggingTask.value || draggingTask.value.status === colId) return
 
+  // Always reset drag state first (before any return)
   const task = draggingTask.value
   draggingId.value = null
   draggingTask.value = null
+
+  if (!task || task.status === colId) return
 
   // Optimistic update
   const t = tasks.value?.find(t => t.id === task.id)
