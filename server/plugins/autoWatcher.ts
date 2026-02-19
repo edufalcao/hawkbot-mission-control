@@ -1,5 +1,5 @@
 import { useDb } from '../db'
-import { tasks, team } from '../db/schema'
+import { tasks, teamMembers } from '../db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { spawn } from 'node:child_process'
 
@@ -55,7 +55,7 @@ async function runWatcherCycle() {
         console.log(`[autoWatcher] Dispatching: ${task.title}`)
 
         // Look up agent info from team table
-        const agent = await db.select().from(team).where(eq(team.name, task.assignee)).limit(1)
+        const agent = await db.select().from(teamMembers).where(eq(teamMembers.name, task.assignee)).limit(1)
         dispatchBackground(task, agent[0] || null)
       }
     }
