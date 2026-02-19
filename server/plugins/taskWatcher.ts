@@ -1,6 +1,6 @@
 import { useDb } from '../db'
 import { tasks, activityLog } from '../db/schema'
-import { eq, and, ne, inArray } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { execSync } from 'node:child_process'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -20,7 +20,7 @@ export default defineNitroPlugin(() => {
   _watcherTimer = setInterval(runWatcherCycle, 60 * 1000)
 })
 
-async function runWatcherCycle() {
+export async function runWatcherCycle() {
   const db = useDb()
 
   try {
@@ -52,7 +52,6 @@ async function runWatcherCycle() {
 
 async function dispatchTask(task: typeof tasks.$inferSelect) {
   const db = useDb()
-  const sessionKey = `task:${task.id}`
   const now = new Date().toISOString()
 
   console.log(`[taskWatcher] Dispatching task "${task.title}" (${task.id})`)
@@ -60,13 +59,12 @@ async function dispatchTask(task: typeof tasks.$inferSelect) {
   const prompt = buildPrompt(task)
 
   try {
-    // Dispatch to OpenClaw Gateway as an isolated agent session
-    dispatchToGateway(sessionKey, prompt)
+    // Send message to main HawkBot session via CLI
+    sendToMainSession(prompt)
 
     // Update task status to in_progress
     await db.update(tasks).set({
       status: 'in_progress',
-      sessionKey,
       dispatchedAt: now,
       updatedAt: now
     }).where(eq(tasks.id, task.id))
@@ -78,11 +76,11 @@ async function dispatchTask(task: typeof tasks.$inferSelect) {
       actor: 'hawkbot',
       message: `HawkBot started working on: "${task.title}"`,
       taskId: task.id,
-      metadata: JSON.stringify({ sessionKey }),
+      metadata: JSON.stringify({}),
       createdAt: now
     })
 
-    console.log(`[taskWatcher] ✅ Task "${task.title}" dispatched → session ${sessionKey}`)
+    console.log(`[taskWatcher] ✅ Task "${task.title}" dispatched → message sent to HawkBot main session`)
   }
   catch (err) {
     console.error(`[taskWatcher] Failed to dispatch task "${task.title}":`, err)
@@ -97,66 +95,50 @@ async function checkStalledTask(task: typeof tasks.$inferSelect) {
 
   if (stalledMs < STALL_TIMEOUT_MS) return
 
-  // Task has been "in_progress" for too long — check if session is still alive
-  console.log(`[taskWatcher] Task "${task.title}" has been running for ${Math.round(stalledMs / 60000)}min, checking session...`)
+  // Task has been "in_progress" for too long without update
+  // Reset to todo so it gets re-dispatched
+  console.log(`[taskWatcher] Task "${task.title}" stalled for ${Math.round(stalledMs / 60000)}min → resetting to todo`)
 
-  const sessionAlive = task.sessionKey ? isSessionAlive(task.sessionKey) : false
-
-  if (!sessionAlive) {
-    console.log(`[taskWatcher] Session for "${task.title}" is gone — re-dispatching`)
-    // Reset to todo so it gets re-dispatched on next cycle
-    await useDb().update(tasks).set({
-      status: 'todo',
-      sessionKey: null,
-      dispatchedAt: null,
-      updatedAt: new Date().toISOString()
-    }).where(eq(tasks.id, task.id))
-  }
+  await useDb().update(tasks).set({
+    status: 'todo',
+    dispatchedAt: null,
+    updatedAt: new Date().toISOString()
+  }).where(eq(tasks.id, task.id))
 }
 
-function isSessionAlive(sessionKey: string): boolean {
-  try {
-    const output = execSync(
-      `openclaw gateway call sessions.list --json --timeout 3000`,
-      { encoding: 'utf-8', timeout: 4000 }
-    )
-    const data = JSON.parse(output)
-    const sessions = data.sessions || []
-    return sessions.some((s: { key: string }) => s.key === sessionKey)
-  }
-  catch {
-    return false
-  }
-}
+function sendToMainSession(message: string) {
+  // Escape message for CLI
+  const escapedMessage = message.replace(/"/g, '\\"')
+  const cmd = `openclaw agent --session-id agent:main:main --message "${escapedMessage}" --timeout 300`
 
-function dispatchToGateway(sessionKey: string, message: string) {
-  // Use the OpenClaw CLI to dispatch an agent turn to an isolated session
-  const escapedMessage = message.replace(/'/g, "'\\''")
-  execSync(
-    `openclaw gateway call agent.turn --params '{"sessionKey":"${sessionKey}","message":"${escapedMessage}","isolated":true}' --timeout 5000`,
-    { encoding: 'utf-8', timeout: 6000 }
-  )
+  console.log(`[taskWatcher] Sending to main session: ${cmd.slice(0, 80)}...`)
+
+  execSync(cmd, {
+    encoding: 'utf-8',
+    timeout: 120000, // 2 min timeout
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
 }
 
 function buildPrompt(task: typeof tasks.$inferSelect): string {
   const tags = JSON.parse(task.tags || '[]') as string[]
   const lines = [
-    `You have been assigned a task in Mission Control. Please complete it.`,
+    `Nova task atribuída a você no Mission Control:`,
     ``,
-    `**Task:** ${task.title}`,
+    `**Título:** ${task.title}`,
   ]
 
   if (task.description) {
-    lines.push(`**Description:** ${task.description}`)
+    lines.push(`**Descrição:** ${task.description}`)
   }
 
   if (tags.length) {
     lines.push(`**Tags:** ${tags.join(', ')}`)
   }
 
-  lines.push(``, `When finished, update the task status to "review" via the Mission Control API:`)
-  lines.push(`PATCH http://localhost:4000/api/tasks/${task.id} → { "status": "review" }`)
-  lines.push(``, `Work autonomously and deliver the result.`)
+  lines.push(``, `Quando terminar, atualize o status da task para "review" usando:`)
+  lines.push(`curl -X PATCH http://localhost:4000/api/tasks/${task.id} -H "Content-Type: application/json" -d '{"status": "review"}'`)
+  lines.push(``, `Trabalhe de forma autônoma e entregue o resultado.`)
 
-  return lines.join('\\n')
+  return lines.join('\n')
 }
