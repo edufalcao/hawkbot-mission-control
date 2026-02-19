@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-800 border border-gray-700 rounded-lg p-3 hover:border-gray-500 transition-colors group">
+  <div class="bg-gray-800 rounded-lg p-3 hover:bg-gray-750 transition-colors group">
     <!-- Priority + assignee -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-1.5">
