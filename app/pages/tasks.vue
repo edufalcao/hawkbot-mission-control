@@ -21,7 +21,11 @@
 
     <!-- Kanban board -->
     <div v-else class="flex gap-5 overflow-x-auto pb-4">
-      <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
+      <div
+        v-for="col in COLUMNS"
+        :key="col.id"
+        class="flex-shrink-0 w-72"
+      >
         <!-- Column header -->
         <div class="flex items-center gap-2 mb-3 px-1">
           <span class="text-lg">{{ col.emoji }}</span>
@@ -31,20 +35,40 @@
           </UBadge>
         </div>
 
-        <!-- Task cards -->
-        <div class="space-y-2 min-h-16">
-          <TaskCard
+        <!-- Drop zone -->
+        <div
+          class="space-y-2 min-h-16 rounded-xl p-1 transition-all duration-150"
+          :class="dragOverCol === col.id
+            ? 'bg-gray-700/60 ring-2 ring-indigo-500/60 ring-inset'
+            : 'bg-transparent'"
+          @dragover.prevent="onDragOver(col.id)"
+          @dragleave="onDragLeave(col.id)"
+          @drop.prevent="onDrop(col.id)"
+        >
+          <div
             v-for="task in tasksByStatus[col.id]"
             :key="task.id"
-            :task="task"
-            @update="handleUpdate"
-            @delete="handleDelete"
-          />
+            draggable="true"
+            class="cursor-grab active:cursor-grabbing"
+            :class="draggingId === task.id ? 'opacity-40' : 'opacity-100'"
+            @dragstart="onDragStart(task)"
+            @dragend="onDragEnd"
+          >
+            <TaskCard
+              :task="task"
+              @update="handleUpdate"
+              @delete="handleDelete"
+            />
+          </div>
+
           <div
             v-if="!tasksByStatus[col.id]?.length"
-            class="border border-dashed border-gray-700 rounded-lg p-4 text-center text-xs text-gray-500"
+            class="border border-dashed rounded-lg p-4 text-center text-xs transition-colors duration-150"
+            :class="dragOverCol === col.id
+              ? 'border-indigo-500/50 text-indigo-400'
+              : 'border-gray-700 text-gray-500'"
           >
-            Empty
+            {{ dragOverCol === col.id ? 'Drop here' : 'Empty' }}
           </div>
         </div>
       </div>
@@ -56,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 
 const COLUMNS = [
@@ -67,6 +91,9 @@ const COLUMNS = [
 ]
 
 const showCreateModal = ref(false)
+const draggingId = ref<string | null>(null)
+const draggingTask = ref<any | null>(null)
+const dragOverCol = ref<string | null>(null)
 
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
@@ -91,6 +118,47 @@ const tasksByStatus = computed(() => {
 
 const totalTasks = computed(() => tasks.value?.length || 0)
 const doneTasks = computed(() => tasksByStatus.value['done']?.length || 0)
+
+// Drag & Drop
+function onDragStart(task: any) {
+  draggingId.value = task.id
+  draggingTask.value = task
+}
+
+function onDragEnd() {
+  draggingId.value = null
+  draggingTask.value = null
+  dragOverCol.value = null
+}
+
+function onDragOver(colId: string) {
+  dragOverCol.value = colId
+}
+
+function onDragLeave(colId: string) {
+  if (dragOverCol.value === colId) {
+    dragOverCol.value = null
+  }
+}
+
+async function onDrop(colId: string) {
+  dragOverCol.value = null
+  if (!draggingTask.value || draggingTask.value.status === colId) return
+
+  const task = draggingTask.value
+  draggingId.value = null
+  draggingTask.value = null
+
+  // Optimistic update
+  const t = tasks.value?.find(t => t.id === task.id)
+  if (t) t.status = colId
+
+  await $fetch(`/api/tasks/${task.id}`, {
+    method: 'PATCH',
+    body: { status: colId }
+  })
+  await refetch()
+}
 
 async function handleUpdate({ id, ...data }: any) {
   await $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data })
