@@ -49,7 +49,7 @@
             v-for="task in tasksByStatus[col.id]"
             :key="task.id"
             draggable="true"
-            class="cursor-grab active:cursor-grabbing"
+            class="cursor-grab active:cursor-grabbing outline-none"
             :class="draggingId === task.id ? 'opacity-40' : 'opacity-100'"
             @dragstart="onDragStart(task)"
             @dragend="onDragEnd"
