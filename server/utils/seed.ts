@@ -24,7 +24,7 @@ const DEFAULT_TEAM = [
     name: 'Research Agent',
     emoji: '🔍',
     role: 'researcher',
-    model: 'gemini-flash',
+    model: 'sonnet',
     specialties: ['web-search', 'analysis', 'summarization'],
     description: 'Web research, technical analysis, data gathering'
   },
@@ -32,7 +32,7 @@ const DEFAULT_TEAM = [
     name: 'Ops Agent',
     emoji: '⚙️',
     role: 'operator',
-    model: 'minimax',
+    model: 'sonnet',
     specialties: ['cron', 'monitoring', 'infra', 'automation'],
     description: 'Cron jobs, monitoring, infrastructure, automation'
   },
