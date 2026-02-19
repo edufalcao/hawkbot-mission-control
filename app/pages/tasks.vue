@@ -12,7 +12,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="pending" class="flex gap-5 overflow-x-auto pb-4">
+    <div v-if="pending && !tasks" class="flex gap-5 overflow-x-auto pb-4">
       <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
         <div class="h-8 bg-gray-800 rounded animate-pulse mb-3" />
         <div v-for="i in 2" :key="i" class="h-24 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -21,40 +21,30 @@
 
     <!-- Kanban board -->
     <div v-else class="flex gap-5 overflow-x-auto pb-4">
-      <div
-        v-for="col in COLUMNS"
-        :key="col.id"
-        class="flex-shrink-0 w-72"
-      >
+      <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
         <!-- Column header -->
         <div class="flex items-center gap-2 mb-3 px-1">
           <span class="text-lg">{{ col.emoji }}</span>
           <span class="font-semibold text-sm text-gray-300">{{ col.label }}</span>
           <UBadge :color="col.color" size="xs" class="ml-auto">
-            {{ tasksByStatus[col.id]?.length || 0 }}
+            {{ columnTasks[col.id]?.length || 0 }}
           </UBadge>
         </div>
 
-        <!-- Drop zone -->
-        <div
-          class="space-y-2 min-h-16 rounded-xl p-1 transition-all duration-150"
-          :class="dragOverCol === col.id
-            ? 'bg-gray-700/60 ring-2 ring-indigo-500/60 ring-inset'
-            : 'bg-transparent'"
-          @dragover.prevent="onDragOver(col.id)"
-          @dragleave="onDragLeave(col.id)"
-          @drop.prevent="onDrop(col.id)"
+        <!-- Draggable column -->
+        <VueDraggable
+          v-model="columnTasks[col.id]"
+          group="tasks"
+          :animation="150"
+          ghost-class="opacity-40"
+          drag-class="rotate-1"
+          chosen-class="scale-105"
+          class="min-h-16 space-y-2 rounded-xl p-1"
+          :class="isDragging ? 'ring-1 ring-gray-600 ring-inset' : ''"
+          @start="isDragging = true"
+          @end="onDragEnd"
         >
-          <div
-            v-for="task in tasksByStatus[col.id]"
-            :key="task.id"
-            draggable="true"
-            class="cursor-grab active:cursor-grabbing select-none outline-none focus:outline-none"
-            style="-webkit-user-drag: element; user-select: none;"
-            :class="draggingId === task.id ? 'opacity-40' : 'opacity-100'"
-            @dragstart="onDragStart(task)"
-            @dragend="onDragEnd"
-          >
+          <div v-for="task in columnTasks[col.id]" :key="task.id">
             <TaskCard
               :task="task"
               @update="handleUpdate"
@@ -62,15 +52,14 @@
             />
           </div>
 
-          <div
-            v-if="!tasksByStatus[col.id]?.length"
-            class="rounded-lg p-4 text-center text-xs transition-colors duration-150"
-            :class="dragOverCol === col.id
-              ? 'bg-indigo-500/10 text-indigo-400'
-              : 'text-gray-600'"
-          >
-            {{ dragOverCol === col.id ? '↓ Drop here' : 'No tasks' }}
-          </div>
+        </VueDraggable>
+
+        <!-- Empty placeholder (outside draggable to avoid conflicts) -->
+        <div
+          v-if="!columnTasks[col.id]?.length && !isDragging"
+          class="rounded-lg p-3 text-center text-xs text-gray-600 -mt-1"
+        >
+          No tasks
         </div>
       </div>
     </div>
@@ -81,7 +70,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import { useQuery } from '@tanstack/vue-query'
 
 const COLUMNS = [
@@ -92,9 +82,15 @@ const COLUMNS = [
 ]
 
 const showCreateModal = ref(false)
-const draggingId = ref<string | null>(null)
-const draggingTask = ref<any | null>(null)
-const dragOverCol = ref<string | null>(null)
+const isDragging = ref(false)
+
+// Per-column local task lists (needed for vue-draggable-plus v-model)
+const columnTasks = ref<Record<string, any[]>>({
+  todo: [],
+  in_progress: [],
+  review: [],
+  done: []
+})
 
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
@@ -103,64 +99,50 @@ const { data: tasks, pending, refetch } = useQuery({
   refetchIntervalInBackground: true
 })
 
-// Fallback: manual polling every 10s
+// Sync server data → local column lists
+watch(tasks, (val) => {
+  if (!val) return
+  for (const col of COLUMNS) {
+    columnTasks.value[col.id] = val.filter(t => t.status === col.id)
+  }
+}, { immediate: true })
+
+// Manual polling fallback
 onMounted(() => {
   const timer = setInterval(() => refetch(), 10000)
   onUnmounted(() => clearInterval(timer))
 })
 
-const tasksByStatus = computed(() => {
-  const map: Record<string, any[]> = {}
-  for (const col of COLUMNS) {
-    map[col.id] = (tasks.value || []).filter(t => t.status === col.id)
-  }
-  return map
-})
-
 const totalTasks = computed(() => tasks.value?.length || 0)
-const doneTasks = computed(() => tasksByStatus.value['done']?.length || 0)
+const doneTasks = computed(() => columnTasks.value['done']?.length || 0)
 
-// Drag & Drop
-function onDragStart(task: any) {
-  draggingId.value = task.id
-  draggingTask.value = task
-}
+async function onDragEnd() {
+  isDragging.value = false
 
-function onDragEnd() {
-  draggingId.value = null
-  draggingTask.value = null
-  dragOverCol.value = null
-}
+  // After vue-draggable-plus updates columnTasks v-model,
+  // compare local state vs server state to find what moved
+  const serverTasks = tasks.value || []
+  const patches: Promise<any>[] = []
 
-function onDragOver(colId: string) {
-  dragOverCol.value = colId
-}
-
-function onDragLeave(colId: string) {
-  if (dragOverCol.value === colId) {
-    dragOverCol.value = null
+  for (const col of COLUMNS) {
+    for (const task of columnTasks.value[col.id]) {
+      const serverTask = serverTasks.find((t: any) => t.id === task.id)
+      if (serverTask && serverTask.status !== col.id) {
+        task.status = col.id // keep local in sync
+        patches.push(
+          $fetch(`/api/tasks/${task.id}`, {
+            method: 'PATCH',
+            body: { status: col.id }
+          })
+        )
+      }
+    }
   }
-}
 
-async function onDrop(colId: string) {
-  dragOverCol.value = null
-
-  // Always reset drag state first (before any return)
-  const task = draggingTask.value
-  draggingId.value = null
-  draggingTask.value = null
-
-  if (!task || task.status === colId) return
-
-  // Optimistic update
-  const t = tasks.value?.find(t => t.id === task.id)
-  if (t) t.status = colId
-
-  await $fetch(`/api/tasks/${task.id}`, {
-    method: 'PATCH',
-    body: { status: colId }
-  })
-  await refetch()
+  if (patches.length) {
+    await Promise.all(patches)
+    await refetch()
+  }
 }
 
 async function handleUpdate({ id, ...data }: any) {

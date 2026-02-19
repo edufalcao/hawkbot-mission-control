@@ -23,6 +23,7 @@
     "pinia": "^3.0.4",
     "tailwindcss": "^4.1.18",
     "uuid": "^13.0.0",
+    "vue-draggable-plus": "^0.6.1",
     "ws": "^8.19.0"
   },
   "devDependencies": {
