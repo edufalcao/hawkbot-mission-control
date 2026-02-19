@@ -64,12 +64,12 @@
 
           <div
             v-if="!tasksByStatus[col.id]?.length"
-            class="border border-dashed rounded-lg p-4 text-center text-xs transition-colors duration-150"
+            class="rounded-lg p-4 text-center text-xs transition-colors duration-150"
             :class="dragOverCol === col.id
-              ? 'border-indigo-500/50 text-indigo-400'
-              : 'border-gray-700 text-gray-500'"
+              ? 'bg-indigo-500/10 text-indigo-400'
+              : 'text-gray-600'"
           >
-            {{ dragOverCol === col.id ? 'Drop here' : 'Empty' }}
+            {{ dragOverCol === col.id ? '↓ Drop here' : 'No tasks' }}
           </div>
         </div>
       </div>
