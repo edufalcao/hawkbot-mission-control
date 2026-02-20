@@ -25,8 +25,12 @@ export function isDispatching(taskId: string): boolean {
 }
 
 export function dispatchTask(task: TaskRow, db: Db) {
+  console.log(`[dispatcher] dispatchTask called for "${task.title}" (assignee: ${task.assignee})`)
+
   // Look up assignee to check member type
   const [member] = db.select().from(teamMembers).where(sql`lower(${teamMembers.name}) = lower(${task.assignee})`).limit(1).all()
+
+  console.log(`[dispatcher] Member lookup result:`, member ? `${member.name} (${member.memberType})` : 'NOT FOUND')
 
   // Only auto-dispatch tasks assigned to agents, not human users
   if (!member || member.memberType === 'human') return
