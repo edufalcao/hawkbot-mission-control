@@ -100,6 +100,8 @@ pm2 start "pnpm preview" --name mission-control
 hawkbot-mission-control/
 ├── app/
 │   ├── pages/              # Routes: tasks, calendar, memory, team, office, content
+│   ├── composables/
+│   │   └── useEventStream.ts # SSE composable (singleton EventSource, ref-counted)
 │   ├── components/
 │   │   ├── tasks/          # TaskCard, TaskCreateModal
 │   │   └── NavItem.vue     # Sidebar navigation item
@@ -118,10 +120,12 @@ hawkbot-mission-control/
 │   │   ├── schema.ts       # Drizzle schema (tasks, content, team, activity)
 │   │   └── index.ts        # SQLite connection + automatic migrations
 │   ├── plugins/
-│   │   └── startup.ts      # Initialization: connects gateway, seeds team
+│   │   ├── startup.ts      # Initialization: connects gateway, seeds team
+│   │   └── autoWatcher.ts  # 5-min sweeper for undispatched todo tasks
 │   └── utils/
 │       ├── gateway.ts      # WebSocket client + SSE broadcast
-│       └── seed.ts         # Default agent seeding
+│       ├── dispatcher.ts   # Event-driven task dispatch to agents
+│       └── seed.ts         # Default team seeding (humans + agents)
 ├── data/                   # SQLite database (gitignored)
 ├── .env.example
 └── nuxt.config.ts
@@ -129,15 +133,16 @@ hawkbot-mission-control/
 
 ---
 
-## Default Agents (auto-seeded)
+## Default Team (auto-seeded)
 
-| Agent | Role | Model | Specialties |
-|-------|------|-------|-------------|
-| 🦅 HawkBot | assistant | claude-sonnet | Orchestration, planning, memory |
-| 💻 Dev Agent | developer | claude-sonnet | JS, Nuxt, TypeScript, Node |
-| 🔍 Research Agent | researcher | claude-sonnet | Web search, analysis, summarization |
-| ⚙️ Ops Agent | operator | claude-sonnet | Cron, monitoring, infra, automation |
-| ✍️ Writer Agent | writer | claude-sonnet | Docs, reports, posts, scripts |
+| Member | Type | Role | Model | Specialties |
+|--------|------|------|-------|-------------|
+| 👤 Eduardo | human | owner | — | Management, review, planning |
+| 🦅 HawkBot | agent | assistant | claude-sonnet | Orchestration, planning, memory |
+| 💻 Dev Agent | agent | developer | claude-sonnet | JS, Nuxt, TypeScript, Node |
+| 🔍 Research Agent | agent | researcher | claude-sonnet | Web search, analysis, summarization |
+| ⚙️ Ops Agent | agent | operator | claude-sonnet | Cron, monitoring, infra, automation |
+| ✍️ Writer Agent | agent | writer | claude-sonnet | Docs, reports, posts, scripts |
 
 ---
 
@@ -157,8 +162,11 @@ docker compose up -d
 - [x] Team view (agents)
 - [x] Office view (gamified)
 - [x] Live Feed (SSE)
+- [x] Drag-and-drop on Kanban (SortableJS via vue-draggable-plus)
+- [x] SSE-driven dashboard updates (replaced polling)
+- [x] Event-driven agent dispatch (immediate dispatch + 5-min sweeper fallback)
+- [x] Human vs Agent member types (auto-dispatch only for agents)
 - [ ] Content Pipeline (Phase 2)
-- [ ] Drag-and-drop on Kanban (Phase 2)
 - [ ] Telegram notifications on task move (Phase 2)
 - [ ] Docker Compose (Phase 3)
 
