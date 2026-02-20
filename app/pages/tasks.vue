@@ -70,9 +70,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 
 const COLUMNS = [
   { id: 'todo', label: 'To Do', emoji: '📋', color: 'neutral' as const },
@@ -92,11 +92,13 @@ const columnTasks = ref<Record<string, any[]>>({
   done: []
 })
 
+const queryClient = useQueryClient()
+
 const { data: tasks, pending, refetch } = useQuery({
   queryKey: ['tasks'],
   queryFn: () => $fetch<any[]>('/api/tasks'),
-  refetchInterval: 10000,
-  refetchIntervalInBackground: true
+  refetchInterval: 60000,
+  refetchIntervalInBackground: false
 })
 
 // Sync server data → local column lists
@@ -107,10 +109,13 @@ watch(tasks, (val) => {
   }
 }, { immediate: true })
 
-// Manual polling fallback
-onMounted(() => {
-  const timer = setInterval(() => refetch(), 10000)
-  onUnmounted(() => clearInterval(timer))
+// SSE-driven invalidation for instant updates
+const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+useEventStream({
+  task_created: invalidateTasks,
+  task_updated: invalidateTasks,
+  task_completed: invalidateTasks,
+  task_deleted: invalidateTasks
 })
 
 const totalTasks = computed(() => tasks.value?.length || 0)
