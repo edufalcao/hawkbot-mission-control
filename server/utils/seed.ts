@@ -5,7 +5,17 @@ import { v4 as uuidv4 } from 'uuid'
 
 const DEFAULT_TEAM = [
   {
+    name: 'Eduardo',
+    memberType: 'human' as const,
+    emoji: '👤',
+    role: 'owner',
+    model: null,
+    specialties: ['management', 'review', 'planning'],
+    description: 'Project owner — manual task management'
+  },
+  {
     name: 'HawkBot',
+    memberType: 'agent' as const,
     emoji: '🦅',
     role: 'assistant',
     model: 'sonnet',
@@ -14,6 +24,7 @@ const DEFAULT_TEAM = [
   },
   {
     name: 'Dev Agent',
+    memberType: 'agent' as const,
     emoji: '💻',
     role: 'developer',
     model: 'sonnet',
@@ -22,6 +33,7 @@ const DEFAULT_TEAM = [
   },
   {
     name: 'Research Agent',
+    memberType: 'agent' as const,
     emoji: '🔍',
     role: 'researcher',
     model: 'sonnet',
@@ -30,6 +42,7 @@ const DEFAULT_TEAM = [
   },
   {
     name: 'Ops Agent',
+    memberType: 'agent' as const,
     emoji: '⚙️',
     role: 'operator',
     model: 'sonnet',
@@ -38,6 +51,7 @@ const DEFAULT_TEAM = [
   },
   {
     name: 'Writer Agent',
+    memberType: 'agent' as const,
     emoji: '✍️',
     role: 'writer',
     model: 'sonnet',

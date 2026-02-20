@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { tasks, teamMembers, activityLog } from '../db/schema'
 import type { useDb } from '../db'
 import { broadcastToClients } from './gateway'
@@ -25,8 +25,11 @@ export function isDispatching(taskId: string): boolean {
 }
 
 export function dispatchTask(task: TaskRow, db: Db) {
+  // Look up assignee to check member type
+  const [member] = db.select().from(teamMembers).where(sql`lower(${teamMembers.name}) = lower(${task.assignee})`).limit(1).all()
+
   // Only auto-dispatch tasks assigned to agents, not human users
-  if (task.assignee === 'eduardo') return
+  if (!member || member.memberType === 'human') return
 
   if (_dispatching.has(task.id)) {
     console.log(`[dispatcher] Skipping "${task.title}" — already dispatching`)
@@ -58,12 +61,10 @@ export function dispatchTask(task: TaskRow, db: Db) {
 
   console.log(`[dispatcher] Dispatching: "${task.title}"`)
 
-  // Look up agent info
-  const agent = db.select().from(teamMembers).where(eq(teamMembers.name, task.assignee)).limit(1).all()
-  spawnAgent(task, agent[0] || null, db)
+  spawnAgent(task, member, db)
 }
 
-function spawnAgent(task: TaskRow, agent: Record<string, unknown> | null, db: Db) {
+function spawnAgent(task: TaskRow, agent: Record<string, unknown>, db: Db) {
   const prompt = buildPrompt(task, agent)
   const escaped = prompt.replace(/"/g, '\\"')
   const cmd = `openclaw agent --session-id ${MAIN_SESSION_ID} --message "${escaped}"`
@@ -107,11 +108,12 @@ function spawnAgent(task: TaskRow, agent: Record<string, unknown> | null, db: Db
   })
 }
 
-function buildPrompt(task: TaskRow, agent: Record<string, unknown> | null): string {
-  const specialties = agent?.specialties
-  const agentInfo = agent
-    ? `\n📋 **Agente:** ${agent.emoji} ${agent.name}\n🎯 **Especialidades:** ${Array.isArray(specialties) ? specialties.join(', ') : specialties}`
-    : ''
+function buildPrompt(task: TaskRow, agent: Record<string, unknown>): string {
+  const rawSpecialties = agent.specialties
+  const parsedSpecialties = Array.isArray(rawSpecialties)
+    ? rawSpecialties
+    : (() => { try { return JSON.parse(rawSpecialties) } catch { return [rawSpecialties] } })()
+  const agentInfo = `\n📋 **Agente:** ${agent.emoji} ${agent.name}\n🎯 **Especialidades:** ${parsedSpecialties.join(', ')}`
 
   return `Nova task no Mission Control:${agentInfo}
 

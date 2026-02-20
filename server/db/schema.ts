@@ -35,6 +35,7 @@ export const contentItems = sqliteTable('content_items', {
 export const teamMembers = sqliteTable('team_members', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  memberType: text('member_type', { enum: ['human', 'agent'] }).notNull().default('agent'),
   emoji: text('emoji').default('🤖'),
   role: text('role').notNull(),
   model: text('model').default('sonnet'),
