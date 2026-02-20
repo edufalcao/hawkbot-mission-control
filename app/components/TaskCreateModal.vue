@@ -86,36 +86,36 @@
 </template>
 
 <script setup lang="ts">
-const open = defineModel<boolean>()
-const emit = defineEmits<{ created: [] }>()
+const open = defineModel<boolean>();
+const emit = defineEmits<{ created: [] }>();
 
-const loading = ref(false)
-const error = ref('')
-const tagsInput = ref('')
+const loading = ref(false);
+const error = ref('');
+const tagsInput = ref('');
 
 const form = reactive({
   title: '',
   description: '',
   assignee: 'eduardo',
   priority: 'none'
-})
+});
 
 const assigneeOptions = [
   { label: '👤 Eduardo', value: 'eduardo' },
   { label: '🦅 HawkBot', value: 'hawkbot' }
-]
+];
 
 const priorityOptions = [
   { label: '— None', value: 'none' },
   { label: '🔴 High', value: 'high' },
   { label: '🟡 Medium', value: 'medium' },
   { label: '🔵 Low', value: 'low' }
-]
+];
 
 async function submit() {
-  if (!form.title.trim()) return
-  loading.value = true
-  error.value = ''
+  if (!form.title.trim()) return;
+  loading.value = true;
+  error.value = '';
 
   try {
     await $fetch('/api/tasks', {
@@ -124,24 +124,24 @@ async function submit() {
         ...form,
         tags: tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
       }
-    })
-    emit('created')
-    open.value = false
-    resetForm()
+    });
+    emit('created');
+    open.value = false;
+    resetForm();
   } catch (e: unknown) {
-    const fetchError = e as { data?: { message?: string } }
-    error.value = fetchError?.data?.message || 'Failed to create task. Try again.'
+    const fetchError = e as { data?: { message?: string } };
+    error.value = fetchError?.data?.message || 'Failed to create task. Try again.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function resetForm() {
-  form.title = ''
-  form.description = ''
-  form.assignee = 'eduardo'
-  form.priority = 'none'
-  tagsInput.value = ''
-  error.value = ''
+  form.title = '';
+  form.description = '';
+  form.assignee = 'eduardo';
+  form.priority = 'none';
+  tagsInput.value = '';
+  error.value = '';
 }
 </script>

@@ -76,9 +76,9 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending, refresh } = useFetch('/api/calendar')
+const { data, pending, refresh } = useFetch('/api/calendar');
 
-const events = computed(() => data.value?.events || [])
+const events = computed(() => data.value?.events || []);
 
 function statusColor(status: string) {
   return {
@@ -86,12 +86,12 @@ function statusColor(status: string) {
     completed: 'bg-blue-500',
     failed: 'bg-red-500',
     disabled: 'bg-gray-500'
-  }[status] || 'bg-gray-500'
+  }[status] || 'bg-gray-500';
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-  })
+  });
 }
 </script>

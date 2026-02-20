@@ -1,13 +1,13 @@
-import { useDb } from '../../db'
-import { tasks, activityLog } from '../../db/schema'
-import { broadcastToClients } from '../../utils/gateway'
-import { dispatchTask } from '../../utils/dispatcher'
-import { v4 as uuidv4 } from 'uuid'
+import { useDb } from '../../db';
+import { tasks, activityLog } from '../../db/schema';
+import { broadcastToClients } from '../../utils/gateway';
+import { dispatchTask } from '../../utils/dispatcher';
+import { v4 as uuidv4 } from 'uuid';
 
 export default defineEventHandler(async (event) => {
-  const db = useDb()
-  const body = await readBody(event)
-  const now = new Date().toISOString()
+  const db = useDb();
+  const body = await readBody(event);
+  const now = new Date().toISOString();
 
   const task = {
     id: uuidv4(),
@@ -20,9 +20,9 @@ export default defineEventHandler(async (event) => {
     createdAt: now,
     updatedAt: now,
     completedAt: null
-  }
+  };
 
-  await db.insert(tasks).values(task)
+  await db.insert(tasks).values(task);
 
   // Log activity
   const logEntry = {
@@ -33,14 +33,14 @@ export default defineEventHandler(async (event) => {
     taskId: task.id,
     metadata: JSON.stringify({}),
     createdAt: now
-  }
-  await db.insert(activityLog).values(logEntry)
-  broadcastToClients({ event: 'task_created', task: { ...task, tags: body.tags || [] }, log: logEntry })
+  };
+  await db.insert(activityLog).values(logEntry);
+  broadcastToClients({ event: 'task_created', task: { ...task, tags: body.tags || [] }, log: logEntry });
 
   // Dispatch immediately if the task starts as todo
   if (task.status === 'todo') {
-    dispatchTask(task, db)
+    dispatchTask(task, db);
   }
 
-  return { ...task, tags: body.tags || [] }
-})
+  return { ...task, tags: body.tags || [] };
+});

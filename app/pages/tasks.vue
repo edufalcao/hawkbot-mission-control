@@ -105,32 +105,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { VueDraggable } from 'vue-draggable-plus'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { ref, computed, watch } from 'vue';
+import { VueDraggable } from 'vue-draggable-plus';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 
 interface Task {
-  id: string
-  title: string
-  description?: string
-  status: string
-  assignee: string
-  priority: string
-  tags: string[]
+  id: string,
+  title: string,
+  description?: string,
+  status: string,
+  assignee: string,
+  priority: string,
+  tags: string[],
   createdAt: string
 }
 
-type ColumnId = 'todo' | 'in_progress' | 'review' | 'done'
+type ColumnId = 'todo' | 'in_progress' | 'review' | 'done';
 
 const COLUMNS: { id: ColumnId, label: string, emoji: string, color: 'neutral' | 'warning' | 'info' | 'success' }[] = [
   { id: 'todo', label: 'To Do', emoji: '📋', color: 'neutral' },
   { id: 'in_progress', label: 'In Progress', emoji: '⚡', color: 'warning' },
   { id: 'review', label: 'Review', emoji: '👀', color: 'info' },
   { id: 'done', label: 'Done', emoji: '✅', color: 'success' }
-]
+];
 
-const showCreateModal = ref(false)
-const isDragging = ref(false)
+const showCreateModal = ref(false);
+const isDragging = ref(false);
 
 // Per-column local task lists (needed for vue-draggable-plus v-model)
 const columnTasks = ref<{ [K in ColumnId]: Task[] }>({
@@ -138,73 +138,73 @@ const columnTasks = ref<{ [K in ColumnId]: Task[] }>({
   in_progress: [],
   review: [],
   done: []
-})
+});
 
-const queryClient = useQueryClient()
+const queryClient = useQueryClient();
 
 const { data: tasks, isLoading: pending, refetch } = useQuery({
   queryKey: ['tasks'],
   queryFn: () => $fetch<Task[]>('/api/tasks'),
   refetchInterval: 60000,
   refetchIntervalInBackground: false
-})
+});
 
 // Sync server data → local column lists
 watch(tasks, (val) => {
-  if (!val) return
+  if (!val) return;
   for (const col of COLUMNS) {
-    columnTasks.value[col.id] = val.filter(t => t.status === col.id)
+    columnTasks.value[col.id] = val.filter(t => t.status === col.id);
   }
-}, { immediate: true })
+}, { immediate: true });
 
 // SSE-driven invalidation for instant updates
-const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ['tasks'] });
 useEventStream({
   task_created: invalidateTasks,
   task_updated: invalidateTasks,
   task_completed: invalidateTasks,
   task_deleted: invalidateTasks
-})
+});
 
-const totalTasks = computed(() => tasks.value?.length || 0)
-const doneTasks = computed(() => columnTasks.value['done']?.length || 0)
+const totalTasks = computed(() => tasks.value?.length || 0);
+const doneTasks = computed(() => columnTasks.value['done']?.length || 0);
 
 async function onDragEnd() {
-  isDragging.value = false
+  isDragging.value = false;
 
   // After vue-draggable-plus updates columnTasks v-model,
   // compare local state vs server state to find what moved
-  const serverTasks = tasks.value || []
-  const patches: Promise<unknown>[] = []
+  const serverTasks = tasks.value || [];
+  const patches: Promise<unknown>[] = [];
 
   for (const col of COLUMNS) {
     for (const task of columnTasks.value[col.id] || []) {
-      const serverTask = serverTasks.find((t: Task) => t.id === task.id)
+      const serverTask = serverTasks.find((t: Task) => t.id === task.id);
       if (serverTask && serverTask.status !== col.id) {
-        task.status = col.id // keep local in sync
+        task.status = col.id; // keep local in sync
         patches.push(
           $fetch(`/api/tasks/${task.id}`, {
             method: 'PATCH',
             body: { status: col.id }
           })
-        )
+        );
       }
     }
   }
 
   if (patches.length) {
-    await Promise.all(patches)
-    await refetch()
+    await Promise.all(patches);
+    await refetch();
   }
 }
 
 async function handleUpdate({ id, ...data }: { id: string, status?: string }) {
-  await $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data })
-  await refetch()
+  await $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data });
+  await refetch();
 }
 
 async function handleDelete(id: string) {
-  await $fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-  await refetch()
+  await $fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+  await refetch();
 }
 </script>

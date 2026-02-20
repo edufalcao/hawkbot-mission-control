@@ -73,21 +73,21 @@
 <script setup lang="ts">
 const props = defineProps<{
   task: {
-    id: string
-    title: string
-    description?: string
-    status: string
-    assignee: string
-    priority: string
-    tags: string[]
+    id: string,
+    title: string,
+    description?: string,
+    status: string,
+    assignee: string,
+    priority: string,
+    tags: string[],
     createdAt: string
   }
-}>()
+}>();
 
 const emit = defineEmits<{
-  update: [data: { id: string, status?: string }]
+  update: [data: { id: string, status?: string }],
   delete: [id: string]
-}>()
+}>();
 
 const STATUS_NEXT: Record<string, { label: string, value: string }[]> = {
   todo: [{ label: '⚡ Start', value: 'in_progress' }],
@@ -100,10 +100,10 @@ const STATUS_NEXT: Record<string, { label: string, value: string }[]> = {
     { label: '✅ Mark Done', value: 'done' }
   ],
   done: []
-}
+};
 
 const actionItems = computed(() => {
-  const transitions = STATUS_NEXT[props.task.status] || []
+  const transitions = STATUS_NEXT[props.task.status] || [];
   return [
     ...transitions.map(t => ({
       label: t.label,
@@ -115,10 +115,10 @@ const actionItems = computed(() => {
       class: 'text-red-400',
       onSelect: () => emit('delete', props.task.id)
     }
-  ]
-})
+  ];
+});
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 </script>

@@ -1,34 +1,34 @@
-import { useDb } from '../../db'
-import { tasks, activityLog } from '../../db/schema'
-import { eq } from 'drizzle-orm'
-import { broadcastToClients } from '../../utils/gateway'
-import { dispatchTask } from '../../utils/dispatcher'
-import { v4 as uuidv4 } from 'uuid'
+import { useDb } from '../../db';
+import { tasks, activityLog } from '../../db/schema';
+import { eq } from 'drizzle-orm';
+import { broadcastToClients } from '../../utils/gateway';
+import { dispatchTask } from '../../utils/dispatcher';
+import { v4 as uuidv4 } from 'uuid';
 
 export default defineEventHandler(async (event) => {
-  const db = useDb()
-  const id = getRouterParam(event, 'id')!
-  const body = await readBody(event)
-  const now = new Date().toISOString()
+  const db = useDb();
+  const id = getRouterParam(event, 'id')!;
+  const body = await readBody(event);
+  const now = new Date().toISOString();
 
-  const updates: Record<string, unknown> = { updatedAt: now }
+  const updates: Record<string, unknown> = { updatedAt: now };
 
-  if (body.title !== undefined) updates.title = body.title
-  if (body.description !== undefined) updates.description = body.description
+  if (body.title !== undefined) updates.title = body.title;
+  if (body.description !== undefined) updates.description = body.description;
   if (body.status !== undefined) {
-    updates.status = body.status
-    if (body.status === 'done') updates.completedAt = now
+    updates.status = body.status;
+    if (body.status === 'done') updates.completedAt = now;
   }
-  if (body.assignee !== undefined) updates.assignee = body.assignee
-  if (body.priority !== undefined) updates.priority = body.priority
-  if (body.tags !== undefined) updates.tags = JSON.stringify(body.tags)
+  if (body.assignee !== undefined) updates.assignee = body.assignee;
+  if (body.priority !== undefined) updates.priority = body.priority;
+  if (body.tags !== undefined) updates.tags = JSON.stringify(body.tags);
 
-  await db.update(tasks).set(updates).where(eq(tasks.id, id))
+  await db.update(tasks).set(updates).where(eq(tasks.id, id));
 
-  const [updated] = await db.select().from(tasks).where(eq(tasks.id, id))
+  const [updated] = await db.select().from(tasks).where(eq(tasks.id, id));
 
   if (!updated) {
-    throw createError({ statusCode: 404, message: 'Task not found' })
+    throw createError({ statusCode: 404, message: 'Task not found' });
   }
 
   // Log activity
@@ -42,14 +42,14 @@ export default defineEventHandler(async (event) => {
     taskId: id,
     metadata: JSON.stringify({ changes: body }),
     createdAt: now
-  }
-  await db.insert(activityLog).values(logEntry)
-  broadcastToClients({ event: 'task_updated', task: { ...updated, tags: JSON.parse(updated.tags || '[]') }, log: logEntry })
+  };
+  await db.insert(activityLog).values(logEntry);
+  broadcastToClients({ event: 'task_updated', task: { ...updated, tags: JSON.parse(updated.tags || '[]') }, log: logEntry });
 
   // Dispatch if task was moved (back) to todo
   if (body.status === 'todo') {
-    dispatchTask(updated, db)
+    dispatchTask(updated, db);
   }
 
-  return { ...updated, tags: JSON.parse(updated.tags || '[]') }
-})
+  return { ...updated, tags: JSON.parse(updated.tags || '[]') };
+});

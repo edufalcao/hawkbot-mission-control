@@ -96,6 +96,6 @@
 </template>
 
 <script setup lang="ts">
-const { data } = useFetch('/api/team', { watch: false })
-const members = computed(() => data.value || [])
+const { data } = useFetch('/api/team', { watch: false });
+const members = computed(() => data.value || []);
 </script>

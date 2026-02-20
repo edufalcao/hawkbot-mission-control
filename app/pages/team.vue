@@ -87,24 +87,24 @@
 
 <script setup lang="ts">
 interface TeamMember {
-  id: string
-  name: string
-  memberType: string
-  emoji: string | null
-  role: string
-  model: string | null
-  specialties: string[]
-  description: string | null
-  status: string
-  currentTaskId: string | null
-  lastUsed: string | null
-  usageCount: number | null
-  successCount: number | null
+  id: string,
+  name: string,
+  memberType: string,
+  emoji: string | null,
+  role: string,
+  model: string | null,
+  specialties: string[],
+  description: string | null,
+  status: string,
+  currentTaskId: string | null,
+  lastUsed: string | null,
+  usageCount: number | null,
+  successCount: number | null,
   createdAt: string
 }
 
-const { data, pending } = useFetch<TeamMember[]>('/api/team')
+const { data, pending } = useFetch<TeamMember[]>('/api/team');
 
-const members = computed(() => data.value || [])
-const busyCount = computed(() => members.value.filter(m => m.status === 'busy').length)
+const members = computed(() => data.value || []);
+const busyCount = computed(() => members.value.filter(m => m.status === 'busy').length);
 </script>

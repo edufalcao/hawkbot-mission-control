@@ -102,43 +102,43 @@
 </template>
 
 <script setup lang="ts">
-const search = ref('')
-const showFileModal = ref(false)
+const search = ref('');
+const showFileModal = ref(false);
 interface MemoryFile {
-  path: string
-  name: string
-  type: string
-  preview: string
-  content?: string
+  path: string,
+  name: string,
+  type: string,
+  preview: string,
+  content?: string,
   modifiedAt: string
 }
 
-const selectedFile = ref<MemoryFile | null>(null)
-const fileContent = ref('')
+const selectedFile = ref<MemoryFile | null>(null);
+const fileContent = ref('');
 
 const { data, pending } = useFetch('/api/memory', {
   query: computed(() => search.value ? { q: search.value } : {})
-})
+});
 
-const files = computed(() => data.value || [])
+const files = computed(() => data.value || []);
 
 async function openFile(file: MemoryFile) {
-  selectedFile.value = file
-  showFileModal.value = true
-  const result = await $fetch('/api/memory', { query: { q: '', content: 'true' } }) as MemoryFile[]
-  const full = result.find((f: MemoryFile) => f.path === file.path)
-  fileContent.value = full?.content || ''
+  selectedFile.value = file;
+  showFileModal.value = true;
+  const result = await $fetch('/api/memory', { query: { q: '', content: 'true' } }) as MemoryFile[];
+  const full = result.find((f: MemoryFile) => f.path === file.path);
+  fileContent.value = full?.content || '';
 }
 
 function typeEmoji(type: string) {
-  return { memory: '🧠', daily: '📅', plan: '🗺️', other: '📄' }[type] || '📄'
+  return { memory: '🧠', daily: '📅', plan: '🗺️', other: '📄' }[type] || '📄';
 }
 
 function typeBadgeColor(type: string) {
-  return { memory: 'secondary' as const, daily: 'info' as const, plan: 'warning' as const, other: 'neutral' as const }[type] || 'neutral' as const
+  return { memory: 'secondary' as const, daily: 'info' as const, plan: 'warning' as const, other: 'neutral' as const }[type] || 'neutral' as const;
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 </script>

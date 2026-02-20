@@ -1,7 +1,7 @@
-import { VueQueryPlugin, QueryClient, type DehydratedState, hydrate, dehydrate } from '@tanstack/vue-query'
+import { VueQueryPlugin, QueryClient, type DehydratedState, hydrate, dehydrate } from '@tanstack/vue-query';
 
 export default defineNuxtPlugin((nuxt) => {
-  const vueQueryState = useState<DehydratedState | null>('vue-query')
+  const vueQueryState = useState<DehydratedState | null>('vue-query');
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -10,19 +10,19 @@ export default defineNuxtPlugin((nuxt) => {
         refetchOnWindowFocus: false
       }
     }
-  })
+  });
 
   if (import.meta.server) {
     nuxt.hooks.hook('app:rendered', () => {
-      vueQueryState.value = dehydrate(queryClient)
-    })
+      vueQueryState.value = dehydrate(queryClient);
+    });
   }
 
   if (import.meta.client) {
-    hydrate(queryClient, vueQueryState.value)
+    hydrate(queryClient, vueQueryState.value);
   }
 
-  nuxt.vueApp.use(VueQueryPlugin, { queryClient })
+  nuxt.vueApp.use(VueQueryPlugin, { queryClient });
 
-  return { provide: { queryClient } }
-})
+  return { provide: { queryClient } };
+});

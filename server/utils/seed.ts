@@ -1,7 +1,7 @@
-import { useDb } from '../db'
-import { teamMembers } from '../db/schema'
-import { eq } from 'drizzle-orm'
-import { v4 as uuidv4 } from 'uuid'
+import { useDb } from '../db';
+import { teamMembers } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_TEAM = [
   {
@@ -58,16 +58,16 @@ const DEFAULT_TEAM = [
     specialties: ['docs', 'reports', 'posts', 'scripts'],
     description: 'Documentation, reports, technical posts, content scripts'
   }
-]
+];
 
 export async function seedDefaultTeam() {
-  const db = useDb()
-  const now = new Date().toISOString()
+  const db = useDb();
+  const now = new Date().toISOString();
 
   for (const member of DEFAULT_TEAM) {
     const existing = await db.select().from(teamMembers)
       .where(eq(teamMembers.name, member.name))
-      .limit(1)
+      .limit(1);
 
     if (existing.length === 0) {
       await db.insert(teamMembers).values({
@@ -76,7 +76,7 @@ export async function seedDefaultTeam() {
         specialties: JSON.stringify(member.specialties),
         status: 'idle',
         createdAt: now
-      })
+      });
     }
   }
 }

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 // Tasks Board
 export const tasks = sqliteTable('tasks', {
@@ -14,7 +14,7 @@ export const tasks = sqliteTable('tasks', {
   completedAt: text('completed_at'),
   sessionKey: text('session_key'), // OpenClaw session key tracking this task
   dispatchedAt: text('dispatched_at') // When it was last dispatched
-})
+});
 
 // Content Pipeline
 export const contentItems = sqliteTable('content_items', {
@@ -29,7 +29,7 @@ export const contentItems = sqliteTable('content_items', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
   publishedAt: text('published_at')
-})
+});
 
 // Team members (agents)
 export const teamMembers = sqliteTable('team_members', {
@@ -47,7 +47,7 @@ export const teamMembers = sqliteTable('team_members', {
   usageCount: integer('usage_count').default(0),
   successCount: integer('success_count').default(0),
   createdAt: text('created_at').notNull()
-})
+});
 
 // Activity log (live feed)
 export const activityLog = sqliteTable('activity_log', {
@@ -60,4 +60,4 @@ export const activityLog = sqliteTable('activity_log', {
   taskId: text('task_id'),
   metadata: text('metadata').default('{}'), // JSON
   createdAt: text('created_at').notNull()
-})
+});
