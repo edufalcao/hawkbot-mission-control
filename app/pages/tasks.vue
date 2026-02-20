@@ -44,7 +44,7 @@
           @start="isDragging = true"
           @end="onDragEnd"
         >
-          <div v-for="task in columnTasks[col.id]" :key="task.id">
+          <div v-for="task in columnTasks[col.id]" :key="task.id" :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'">
             <TaskCard
               :task="task"
               @update="handleUpdate"
