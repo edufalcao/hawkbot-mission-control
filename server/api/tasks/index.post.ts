@@ -1,6 +1,7 @@
 import { useDb } from '../../db'
 import { tasks, activityLog } from '../../db/schema'
 import { broadcastToClients } from '../../utils/gateway'
+import { dispatchTask } from '../../utils/dispatcher'
 import { v4 as uuidv4 } from 'uuid'
 
 export default defineEventHandler(async (event) => {
@@ -35,6 +36,11 @@ export default defineEventHandler(async (event) => {
   }
   await db.insert(activityLog).values(logEntry)
   broadcastToClients({ event: 'task_created', task: { ...task, tags: body.tags || [] }, log: logEntry })
+
+  // Dispatch immediately if the task starts as todo
+  if (task.status === 'todo') {
+    dispatchTask(task, db)
+  }
 
   return { ...task, tags: body.tags || [] }
 })

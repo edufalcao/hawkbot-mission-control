@@ -2,6 +2,7 @@ import { useDb } from '../../db'
 import { tasks, activityLog } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 import { broadcastToClients } from '../../utils/gateway'
+import { dispatchTask } from '../../utils/dispatcher'
 import { v4 as uuidv4 } from 'uuid'
 
 export default defineEventHandler(async (event) => {
@@ -40,6 +41,11 @@ export default defineEventHandler(async (event) => {
   }
   await db.insert(activityLog).values(logEntry)
   broadcastToClients({ event: 'task_updated', task: { ...updated, tags: JSON.parse(updated.tags || '[]') }, log: logEntry })
+
+  // Dispatch if task was moved (back) to todo
+  if (body.status === 'todo' && updated) {
+    dispatchTask(updated, db)
+  }
 
   return { ...updated, tags: JSON.parse(updated.tags || '[]') }
 })
