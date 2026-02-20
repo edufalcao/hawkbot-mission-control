@@ -25,6 +25,9 @@ export function isDispatching(taskId: string): boolean {
 }
 
 export function dispatchTask(task: TaskRow, db: Db) {
+  // Only auto-dispatch tasks assigned to agents, not human users
+  if (task.assignee === 'eduardo') return
+
   if (_dispatching.has(task.id)) {
     console.log(`[dispatcher] Skipping "${task.title}" — already dispatching`)
     return
