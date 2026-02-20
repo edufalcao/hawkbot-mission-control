@@ -89,9 +89,11 @@ function runMigrations(sqlite: Database.Database) {
   const alterations = [
     'ALTER TABLE tasks ADD COLUMN session_key TEXT',
     'ALTER TABLE tasks ADD COLUMN dispatched_at TEXT',
-    "ALTER TABLE team_members ADD COLUMN member_type TEXT NOT NULL DEFAULT 'agent'"
+    'ALTER TABLE team_members ADD COLUMN member_type TEXT NOT NULL DEFAULT \'agent\''
   ]
   for (const sql of alterations) {
-    try { sqlite.exec(sql) } catch { /* column already exists */ }
+    try {
+      sqlite.exec(sql)
+    } catch { /* column already exists */ }
   }
 }

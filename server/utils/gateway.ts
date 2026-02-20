@@ -36,8 +36,7 @@ export function connectGateway() {
       const msg = JSON.parse(data.toString())
       // Broadcast to SSE clients
       broadcastToClients(msg)
-    }
-    catch {
+    } catch {
       // ignore parse errors
     }
   })
@@ -70,8 +69,7 @@ export function broadcastToClients(data: unknown) {
   for (const client of sseClients.values()) {
     try {
       client.write(msg)
-    }
-    catch {
+    } catch {
       sseClients.delete(client.id)
     }
   }

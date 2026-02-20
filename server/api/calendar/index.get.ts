@@ -26,8 +26,7 @@ export default defineEventHandler(async () => {
     try {
       const data = JSON.parse(readFileSync(calendarPath, 'utf-8'))
       return data
-    }
-    catch {
+    } catch {
       // fall through to gateway fetch
     }
   }
@@ -55,8 +54,7 @@ export default defineEventHandler(async () => {
         nextRun: job.nextRun || null
       })
     }
-  }
-  catch {
+  } catch {
     // Gateway not available
   }
 

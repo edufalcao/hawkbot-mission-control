@@ -3,30 +3,59 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-white">Tasks Board</h1>
-        <p class="text-gray-400 text-sm mt-0.5">{{ totalTasks }} tasks · {{ doneTasks }} completed</p>
+        <h1 class="text-2xl font-bold text-white">
+          Tasks Board
+        </h1>
+        <p class="text-gray-400 text-sm mt-0.5">
+          {{ totalTasks }} tasks · {{ doneTasks }} completed
+        </p>
       </div>
-      <UButton icon="i-lucide-plus" @click="showCreateModal = true">
+      <UButton
+        icon="i-lucide-plus"
+        @click="showCreateModal = true"
+      >
         New Task
       </UButton>
     </div>
 
     <!-- Loading -->
-    <div v-if="pending && !tasks" class="flex gap-5 overflow-x-auto pb-4">
-      <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
+    <div
+      v-if="pending && !tasks"
+      class="flex gap-5 overflow-x-auto pb-4"
+    >
+      <div
+        v-for="col in COLUMNS"
+        :key="col.id"
+        class="flex-shrink-0 w-72"
+      >
         <div class="h-8 bg-gray-800 rounded animate-pulse mb-3" />
-        <div v-for="i in 2" :key="i" class="h-24 bg-gray-800 rounded-lg animate-pulse mb-2" />
+        <div
+          v-for="i in 2"
+          :key="i"
+          class="h-24 bg-gray-800 rounded-lg animate-pulse mb-2"
+        />
       </div>
     </div>
 
     <!-- Kanban board -->
-    <div v-else class="flex gap-5 overflow-x-auto pb-4">
-      <div v-for="col in COLUMNS" :key="col.id" class="flex-shrink-0 w-72">
+    <div
+      v-else
+      class="flex gap-5 overflow-x-auto pb-4"
+    >
+      <div
+        v-for="col in COLUMNS"
+        :key="col.id"
+        class="flex-shrink-0 w-72"
+      >
         <!-- Column header -->
         <div class="flex items-center gap-2 mb-3 px-1">
           <span class="text-lg">{{ col.emoji }}</span>
           <span class="font-semibold text-sm text-gray-300">{{ col.label }}</span>
-          <UBadge :color="col.color" size="xs" class="ml-auto">
+          <UBadge
+            :color="col.color"
+            size="xs"
+            class="ml-auto"
+          >
             {{ columnTasks[col.id]?.length || 0 }}
           </UBadge>
         </div>
@@ -44,14 +73,17 @@
           @start="isDragging = true"
           @end="onDragEnd"
         >
-          <div v-for="task in columnTasks[col.id]" :key="task.id" :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'">
+          <div
+            v-for="task in columnTasks[col.id]"
+            :key="task.id"
+            :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+          >
             <TaskCard
               :task="task"
               @update="handleUpdate"
               @delete="handleDelete"
             />
           </div>
-
         </VueDraggable>
 
         <!-- Empty placeholder (outside draggable to avoid conflicts) -->
@@ -65,7 +97,10 @@
     </div>
 
     <!-- Create Task Modal -->
-    <TaskCreateModal v-model="showCreateModal" @created="refetch" />
+    <TaskCreateModal
+      v-model="showCreateModal"
+      @created="refetch"
+    />
   </div>
 </template>
 
@@ -74,18 +109,31 @@ import { ref, computed, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 
-const COLUMNS = [
-  { id: 'todo', label: 'To Do', emoji: '📋', color: 'neutral' as const },
-  { id: 'in_progress', label: 'In Progress', emoji: '⚡', color: 'warning' as const },
-  { id: 'review', label: 'Review', emoji: '👀', color: 'info' as const },
-  { id: 'done', label: 'Done', emoji: '✅', color: 'success' as const }
+interface Task {
+  id: string
+  title: string
+  description?: string
+  status: string
+  assignee: string
+  priority: string
+  tags: string[]
+  createdAt: string
+}
+
+type ColumnId = 'todo' | 'in_progress' | 'review' | 'done'
+
+const COLUMNS: { id: ColumnId, label: string, emoji: string, color: 'neutral' | 'warning' | 'info' | 'success' }[] = [
+  { id: 'todo', label: 'To Do', emoji: '📋', color: 'neutral' },
+  { id: 'in_progress', label: 'In Progress', emoji: '⚡', color: 'warning' },
+  { id: 'review', label: 'Review', emoji: '👀', color: 'info' },
+  { id: 'done', label: 'Done', emoji: '✅', color: 'success' }
 ]
 
 const showCreateModal = ref(false)
 const isDragging = ref(false)
 
 // Per-column local task lists (needed for vue-draggable-plus v-model)
-const columnTasks = ref<Record<string, any[]>>({
+const columnTasks = ref<{ [K in ColumnId]: Task[] }>({
   todo: [],
   in_progress: [],
   review: [],
@@ -94,9 +142,9 @@ const columnTasks = ref<Record<string, any[]>>({
 
 const queryClient = useQueryClient()
 
-const { data: tasks, pending, refetch } = useQuery({
+const { data: tasks, isLoading: pending, refetch } = useQuery({
   queryKey: ['tasks'],
-  queryFn: () => $fetch<any[]>('/api/tasks'),
+  queryFn: () => $fetch<Task[]>('/api/tasks'),
   refetchInterval: 60000,
   refetchIntervalInBackground: false
 })
@@ -127,11 +175,11 @@ async function onDragEnd() {
   // After vue-draggable-plus updates columnTasks v-model,
   // compare local state vs server state to find what moved
   const serverTasks = tasks.value || []
-  const patches: Promise<any>[] = []
+  const patches: Promise<unknown>[] = []
 
   for (const col of COLUMNS) {
-    for (const task of columnTasks.value[col.id]) {
-      const serverTask = serverTasks.find((t: any) => t.id === task.id)
+    for (const task of columnTasks.value[col.id] || []) {
+      const serverTask = serverTasks.find((t: Task) => t.id === task.id)
       if (serverTask && serverTask.status !== col.id) {
         task.status = col.id // keep local in sync
         patches.push(
@@ -150,7 +198,7 @@ async function onDragEnd() {
   }
 }
 
-async function handleUpdate({ id, ...data }: any) {
+async function handleUpdate({ id, ...data }: { id: string, status?: string }) {
   await $fetch(`/api/tasks/${id}`, { method: 'PATCH', body: data })
   await refetch()
 }

@@ -8,7 +8,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare && npx node-gyp rebuild --directory node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3 || true",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "prepare": "husky"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.90",
@@ -32,6 +33,8 @@
     "@types/uuid": "^11.0.0",
     "@types/ws": "^8.18.1",
     "eslint": "^10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.4"
   },
@@ -39,5 +42,8 @@
   "engines": {
     "node": ">=24",
     "pnpm": ">=10"
+  },
+  "lint-staged": {
+    "*.{ts,vue,js,mjs}": "eslint --fix"
   }
 }

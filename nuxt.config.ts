@@ -23,17 +23,17 @@ export default defineNuxtConfig({
     }
   },
 
-  nitro: {
-    experimental: {
-      websocket: true
-    }
-  },
-
   devServer: {
     port: 4000
   },
 
   compatibilityDate: '2025-01-15',
+
+  nitro: {
+    experimental: {
+      websocket: true
+    }
+  },
 
   eslint: {
     config: {

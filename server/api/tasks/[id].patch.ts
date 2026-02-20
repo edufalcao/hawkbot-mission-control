@@ -27,6 +27,10 @@ export default defineEventHandler(async (event) => {
 
   const [updated] = await db.select().from(tasks).where(eq(tasks.id, id))
 
+  if (!updated) {
+    throw createError({ statusCode: 404, message: 'Task not found' })
+  }
+
   // Log activity
   const logEntry = {
     id: uuidv4(),
@@ -43,7 +47,7 @@ export default defineEventHandler(async (event) => {
   broadcastToClients({ event: 'task_updated', task: { ...updated, tags: JSON.parse(updated.tags || '[]') }, log: logEntry })
 
   // Dispatch if task was moved (back) to todo
-  if (body.status === 'todo' && updated) {
+  if (body.status === 'todo') {
     dispatchTask(updated, db)
   }
 

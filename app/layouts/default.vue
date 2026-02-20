@@ -7,20 +7,48 @@
         <div class="flex items-center gap-2">
           <span class="text-2xl">🦅</span>
           <div>
-            <p class="font-bold text-white text-sm leading-tight">Mission Control</p>
-            <p class="text-xs text-gray-400">HawkBot</p>
+            <p class="font-bold text-white text-sm leading-tight">
+              Mission Control
+            </p>
+            <p class="text-xs text-gray-400">
+              HawkBot
+            </p>
           </div>
         </div>
       </div>
 
       <!-- Nav -->
       <nav class="flex-1 px-3 py-4 space-y-1">
-        <NavItem to="/tasks" icon="i-lucide-kanban" label="Tasks" />
-        <NavItem to="/calendar" icon="i-lucide-calendar" label="Calendar" />
-        <NavItem to="/content" icon="i-lucide-film" label="Content Pipeline" />
-        <NavItem to="/memory" icon="i-lucide-brain" label="Memory" />
-        <NavItem to="/team" icon="i-lucide-users" label="Team" />
-        <NavItem to="/office" icon="i-lucide-building-2" label="Office" />
+        <NavItem
+          to="/tasks"
+          icon="i-lucide-kanban"
+          label="Tasks"
+        />
+        <NavItem
+          to="/calendar"
+          icon="i-lucide-calendar"
+          label="Calendar"
+        />
+        <NavItem
+          to="/content"
+          icon="i-lucide-film"
+          label="Content Pipeline"
+        />
+        <NavItem
+          to="/memory"
+          icon="i-lucide-brain"
+          label="Memory"
+        />
+        <NavItem
+          to="/team"
+          icon="i-lucide-users"
+          label="Team"
+        />
+        <NavItem
+          to="/office"
+          icon="i-lucide-building-2"
+          label="Office"
+        />
       </nav>
 
       <!-- Live indicator -->

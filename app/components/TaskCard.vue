@@ -13,7 +13,7 @@
           }"
         />
         <UBadge
-          :color="task.assignee === 'hawkbot' ? 'violet' : 'neutral'"
+          :color="task.assignee === 'hawkbot' ? 'secondary' : 'neutral'"
           size="xs"
           variant="subtle"
         >
@@ -24,28 +24,49 @@
       <!-- Actions -->
       <div class="opacity-0 group-hover:opacity-100 transition-opacity">
         <UDropdownMenu :items="actionItems">
-          <UButton icon="i-lucide-more-horizontal" color="neutral" variant="ghost" size="xs" />
+          <UButton
+            icon="i-lucide-more-horizontal"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+          />
         </UDropdownMenu>
       </div>
     </div>
 
     <!-- Title -->
-    <p class="text-sm text-gray-100 font-medium leading-snug mb-2">{{ task.title }}</p>
+    <p class="text-sm text-gray-100 font-medium leading-snug mb-2">
+      {{ task.title }}
+    </p>
 
     <!-- Description -->
-    <p v-if="task.description" class="text-xs text-gray-400 mb-2 line-clamp-2">
+    <p
+      v-if="task.description"
+      class="text-xs text-gray-400 mb-2 line-clamp-2"
+    >
       {{ task.description }}
     </p>
 
     <!-- Tags -->
-    <div v-if="task.tags?.length" class="flex flex-wrap gap-1 mb-2">
-      <UBadge v-for="tag in task.tags" :key="tag" color="neutral" size="xs" variant="solid">
+    <div
+      v-if="task.tags?.length"
+      class="flex flex-wrap gap-1 mb-2"
+    >
+      <UBadge
+        v-for="tag in task.tags"
+        :key="tag"
+        color="neutral"
+        size="xs"
+        variant="solid"
+      >
         {{ tag }}
       </UBadge>
     </div>
 
     <!-- Date -->
-    <p class="text-xs text-gray-500">{{ formatDate(task.createdAt) }}</p>
+    <p class="text-xs text-gray-500">
+      {{ formatDate(task.createdAt) }}
+    </p>
   </div>
 </template>
 
@@ -64,11 +85,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  update: [data: { id: string; status?: string }]
+  update: [data: { id: string, status?: string }]
   delete: [id: string]
 }>()
 
-const STATUS_NEXT: Record<string, { label: string; value: string }[]> = {
+const STATUS_NEXT: Record<string, { label: string, value: string }[]> = {
   todo: [{ label: '⚡ Start', value: 'in_progress' }],
   in_progress: [
     { label: '👀 Send to Review', value: 'review' },

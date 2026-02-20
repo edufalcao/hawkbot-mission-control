@@ -1,26 +1,26 @@
 import { useDb } from '../../db'
 import { tasks } from '../../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, type SQL } from 'drizzle-orm'
+
+type TaskStatus = typeof tasks.status.enumValues[number]
+type TaskAssignee = typeof tasks.assignee.enumValues[number]
 
 export default defineEventHandler(async (event) => {
   const db = useDb()
   const query = getQuery(event)
 
-  let result = db.select().from(tasks).orderBy(desc(tasks.createdAt))
+  let condition: SQL | undefined
 
   if (query.status) {
-    result = db.select().from(tasks)
-      .where(eq(tasks.status, query.status as string))
-      .orderBy(desc(tasks.createdAt))
+    condition = eq(tasks.status, query.status as TaskStatus)
+  } else if (query.assignee) {
+    condition = eq(tasks.assignee, query.assignee as TaskAssignee)
   }
 
-  if (query.assignee) {
-    result = db.select().from(tasks)
-      .where(eq(tasks.assignee, query.assignee as string))
-      .orderBy(desc(tasks.createdAt))
-  }
+  const rows = await db.select().from(tasks)
+    .where(condition)
+    .orderBy(desc(tasks.createdAt))
 
-  const rows = await result
   return rows.map(t => ({
     ...t,
     tags: JSON.parse(t.tags || '[]')

@@ -1,15 +1,29 @@
 <template>
   <div>
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-white">Team</h1>
-      <p class="text-gray-400 text-sm mt-0.5">{{ members.length }} agents · {{ busyCount }} busy</p>
+      <h1 class="text-2xl font-bold text-white">
+        Team
+      </h1>
+      <p class="text-gray-400 text-sm mt-0.5">
+        {{ members.length }} agents · {{ busyCount }} busy
+      </p>
     </div>
 
-    <div v-if="pending" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="i in 5" :key="i" class="h-40 bg-gray-800 rounded-xl animate-pulse" />
+    <div
+      v-if="pending"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="h-40 bg-gray-800 rounded-xl animate-pulse"
+      />
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div
+      v-else
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
       <div
         v-for="member in members"
         :key="member.id"
@@ -18,10 +32,16 @@
         <!-- Avatar + status -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
-            <div class="text-3xl">{{ member.emoji }}</div>
+            <div class="text-3xl">
+              {{ member.emoji }}
+            </div>
             <div>
-              <p class="font-bold text-white text-sm">{{ member.name }}</p>
-              <p class="text-xs text-gray-400 capitalize">{{ member.role }}</p>
+              <p class="font-bold text-white text-sm">
+                {{ member.name }}
+              </p>
+              <p class="text-xs text-gray-400 capitalize">
+                {{ member.role }}
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-1.5">
@@ -38,14 +58,16 @@
         </div>
 
         <!-- Description -->
-        <p class="text-xs text-gray-400 mb-3">{{ member.description }}</p>
+        <p class="text-xs text-gray-400 mb-3">
+          {{ member.description }}
+        </p>
 
         <!-- Specialties -->
         <div class="flex flex-wrap gap-1 mb-3">
           <UBadge
             v-for="spec in member.specialties"
             :key="spec"
-            color="gray"
+            color="neutral"
             size="xs"
             variant="solid"
           >
@@ -64,8 +86,25 @@
 </template>
 
 <script setup lang="ts">
-const { data, pending } = useFetch('/api/team')
+interface TeamMember {
+  id: string
+  name: string
+  memberType: string
+  emoji: string | null
+  role: string
+  model: string | null
+  specialties: string[]
+  description: string | null
+  status: string
+  currentTaskId: string | null
+  lastUsed: string | null
+  usageCount: number | null
+  successCount: number | null
+  createdAt: string
+}
+
+const { data, pending } = useFetch<TeamMember[]>('/api/team')
 
 const members = computed(() => data.value || [])
-const busyCount = computed(() => members.value.filter((m: any) => m.status === 'busy').length)
+const busyCount = computed(() => members.value.filter(m => m.status === 'busy').length)
 </script>

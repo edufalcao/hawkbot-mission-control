@@ -2,9 +2,14 @@
   <UModal v-model:open="open">
     <template #content>
       <div class="p-6 space-y-4">
-        <h2 class="text-lg font-bold text-white">New Task</h2>
+        <h2 class="text-lg font-bold text-white">
+          New Task
+        </h2>
 
-        <UFormField label="Title" required>
+        <UFormField
+          label="Title"
+          required
+        >
           <UInput
             v-model="form.title"
             placeholder="What needs to be done?"
@@ -41,7 +46,10 @@
           </UFormField>
         </div>
 
-        <UFormField label="Tags" hint="Comma separated">
+        <UFormField
+          label="Tags"
+          hint="Comma separated"
+        >
           <UInput
             v-model="tagsInput"
             placeholder="frontend, bug, feature"
@@ -49,10 +57,19 @@
           />
         </UFormField>
 
-        <p v-if="error" class="text-xs text-red-400">{{ error }}</p>
+        <p
+          v-if="error"
+          class="text-xs text-red-400"
+        >
+          {{ error }}
+        </p>
 
         <div class="flex justify-end gap-3 pt-2">
-          <UButton color="neutral" variant="ghost" @click="open = false">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="open = false"
+          >
             Cancel
           </UButton>
           <UButton
@@ -111,11 +128,10 @@ async function submit() {
     emit('created')
     open.value = false
     resetForm()
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Failed to create task. Try again.'
-  }
-  finally {
+  } catch (e: unknown) {
+    const fetchError = e as { data?: { message?: string } }
+    error.value = fetchError?.data?.message || 'Failed to create task. Try again.'
+  } finally {
     loading.value = false
   }
 }

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
 
 // Tasks Board
 export const tasks = sqliteTable('tasks', {
@@ -12,8 +12,8 @@ export const tasks = sqliteTable('tasks', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
   completedAt: text('completed_at'),
-  sessionKey: text('session_key'),       // OpenClaw session key tracking this task
-  dispatchedAt: text('dispatched_at')    // When it was last dispatched
+  sessionKey: text('session_key'), // OpenClaw session key tracking this task
+  dispatchedAt: text('dispatched_at') // When it was last dispatched
 })
 
 // Content Pipeline

@@ -116,7 +116,13 @@ function buildPrompt(task: TaskRow, agent: Record<string, unknown>): string {
   const rawSpecialties = agent.specialties
   const parsedSpecialties = Array.isArray(rawSpecialties)
     ? rawSpecialties
-    : (() => { try { return JSON.parse(rawSpecialties) } catch { return [rawSpecialties] } })()
+    : (() => {
+        try {
+          return JSON.parse(rawSpecialties as string)
+        } catch {
+          return [rawSpecialties]
+        }
+      })()
   const agentInfo = `\n📋 **Agente:** ${agent.emoji} ${agent.name}\n🎯 **Especialidades:** ${parsedSpecialties.join(', ')}`
 
   return `Nova task no Mission Control:${agentInfo}

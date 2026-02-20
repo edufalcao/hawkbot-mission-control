@@ -6,7 +6,10 @@
       ? 'bg-primary-600 text-white'
       : 'text-gray-400 hover:text-white hover:bg-gray-800'"
   >
-    <UIcon :name="icon" class="w-4 h-4 flex-shrink-0" />
+    <UIcon
+      :name="icon"
+      class="w-4 h-4 flex-shrink-0"
+    />
     {{ label }}
   </NuxtLink>
 </template>

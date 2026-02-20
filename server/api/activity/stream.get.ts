@@ -23,8 +23,7 @@ export default defineEventHandler((event) => {
       const heartbeat = setInterval(() => {
         try {
           write(': heartbeat\n\n')
-        }
-        catch {
+        } catch {
           clearInterval(heartbeat)
         }
       }, 30000)
