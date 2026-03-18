@@ -2,7 +2,7 @@
 # Ralph loop — run this script to execute one task from the PRD checklist.
 # The agent reads the PRD, picks the next unchecked item, implements it, commits, and updates progress.txt.
 
-claude --permission-mode acceptEdits "@docs/PRD.md @progress.txt \
+claude --model claude-opus-4-6 --permission-mode acceptEdits "@docs/PRD.md @progress.txt \
 1. Read the PRD Implementation Checklist and the progress file. \
 2. Find the next unchecked item [ ] (in order, starting from P0-1). \
 3. Implement it completely — edit all files mentioned in the checklist item. \
