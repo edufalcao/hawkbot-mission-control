@@ -46,7 +46,7 @@ OpenClaw is powerful but headless. Users who run multiple specialized agents fac
 
 ### The Position
 
-Mission Control is the **official dashboard layer for OpenClaw multi-agent setups**. It is not a replacement for OpenClaw — it's the GUI that OpenClaw doesn't ship. Think of it as Portainer to Docker, or Grafana to Prometheus: a visualization and coordination layer that makes the underlying system accessible to humans.
+Mission Control is a **community-built dashboard layer for OpenClaw multi-agent setups**. It is not a replacement for OpenClaw — it's the GUI that OpenClaw doesn't ship. Think of it as Portainer to Docker, or Grafana to Prometheus: a visualization and coordination layer that makes the underlying system accessible to humans.
 
 ### Core Value Proposition
 
