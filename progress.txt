@@ -41,3 +41,9 @@
   - app/layouts/default.vue: added Settings nav item to sidebar
   - Form loads from DB, tracks changes, saves via PATCH, shows success/error feedback
   - Lint + typecheck pass
+[x] P1-2: Make MAIN_SESSION_ID configurable
+  - server/utils/dispatcher.ts: removed hardcoded UUID constant
+  - Added getMainSessionId() helper that reads `main_session_id` from settings table
+  - dispatchTask() now checks for session ID before dispatching; logs warning and skips if not set
+  - spawnAgent() accepts sessionId as parameter instead of using global constant
+  - Lint + typecheck pass

@@ -1,16 +1,19 @@
 import { spawn } from 'node:child_process';
 import { eq } from 'drizzle-orm';
-import { tasks, teamMembers, activityLog } from '../db/schema';
+import { tasks, teamMembers, activityLog, settings } from '../db/schema';
 import type { useDb } from '../db';
 import { broadcastToClients } from './gateway';
 import { v4 as uuidv4 } from 'uuid';
 
 type Db = ReturnType<typeof useDb>;
 
-const MAIN_SESSION_ID = 'f2b711cf-c351-4d1e-8a70-38d0a0700c21';
-
 // Track dispatching state in memory
 const _dispatching = new Set<string>();
+
+function getMainSessionId(db: Db): string | null {
+  const [row] = db.select().from(settings).where(eq(settings.key, 'main_session_id')).limit(1).all();
+  return row?.value ?? null;
+}
 
 interface TaskRow {
   id: string,
@@ -34,6 +37,12 @@ export function dispatchTask(task: TaskRow, db: Db) {
 
   // Only auto-dispatch tasks assigned to agents, not human users
   if (!member || member.memberType === 'human') return;
+
+  const sessionId = getMainSessionId(db);
+  if (!sessionId) {
+    console.warn(`[dispatcher] Skipping "${task.title}" — main_session_id not configured in settings. Set it via the Settings page.`);
+    return;
+  }
 
   if (_dispatching.has(task.id)) {
     console.log(`[dispatcher] Skipping "${task.title}" — already dispatching`);
@@ -65,13 +74,13 @@ export function dispatchTask(task: TaskRow, db: Db) {
 
   console.log(`[dispatcher] Dispatching: "${task.title}"`);
 
-  spawnAgent(task, member, db);
+  spawnAgent(task, member, sessionId, db);
 }
 
-function spawnAgent(task: TaskRow, agent: Record<string, unknown>, db: Db) {
+function spawnAgent(task: TaskRow, agent: Record<string, unknown>, sessionId: string, db: Db) {
   const prompt = buildPrompt(task, agent);
   const escaped = prompt.replace(/"/g, '\\"');
-  const cmd = `openclaw agent --session-id ${MAIN_SESSION_ID} --message "${escaped}"`;
+  const cmd = `openclaw agent --session-id ${sessionId} --message "${escaped}"`;
 
   const child = spawn('sh', ['-c', cmd], {
     stdio: ['ignore', 'pipe', 'pipe'],

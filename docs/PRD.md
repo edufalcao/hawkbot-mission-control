@@ -1402,7 +1402,7 @@ Mission Control explicitly does **NOT** aim to be:
   - On save, validate gateway connectivity (ping `/api/health` on the gateway)
   - `server/db/schema.ts`: add `settings` table (`key text PK`, `value text`, `updatedAt`)
 
-- [ ] **P1-2**: Make MAIN_SESSION_ID configurable
+- [x] **P1-2**: Make MAIN_SESSION_ID configurable
   - `server/utils/dispatcher.ts`: replace hardcoded UUID with a lookup to `settings` table key `main_session_id`
   - If not set, log a warning and skip dispatch (don't fail silently)
 
