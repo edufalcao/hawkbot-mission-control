@@ -16,3 +16,10 @@
   - server/db/schema.ts: added openclaw_agent_id and agent_dir columns to team_members
   - server/db/index.ts: added ALTER TABLE migrations for new columns + CREATE TABLE update
   - Lint + typecheck pass
+[x] P0-3: Add Team CRUD API endpoints
+  - server/api/team/index.post.ts: create team member with validation (name required, memberType must be human|agent, openclawAgentId unique)
+  - server/api/team/[id].patch.ts: update team member fields (partial update, validates memberType + openclawAgentId uniqueness)
+  - server/api/team/[id].delete.ts: hard-delete team member with 404 check
+  - All endpoints: log to activityLog + broadcast via SSE (team_updated event)
+  - Follows same patterns as task CRUD endpoints (uuid, timestamps, broadcastToClients)
+  - Lint + typecheck pass

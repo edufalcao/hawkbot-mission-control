@@ -1385,7 +1385,7 @@ Mission Control explicitly does **NOT** aim to be:
   - Fall back to a minimal default (one human "owner" + one "assistant" agent) if config not found
   - Re-seed only if team table is empty; never overwrite existing records
 
-- [ ] **P0-3**: Add Team CRUD API endpoints
+- [x] **P0-3**: Add Team CRUD API endpoints
   - `server/api/team/index.post.ts`: create team member (name, type, role, model, specialties, agentId)
   - `server/api/team/[id].patch.ts`: update team member fields
   - `server/api/team/[id].delete.ts`: soft-delete (set `active = false`)
