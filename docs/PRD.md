@@ -1364,3 +1364,112 @@ Mission Control explicitly does **NOT** aim to be:
 8. **P2**: Calendar grid view
 9. **P3**: Docker Compose
 10. **P3**: Agent templates
+
+---
+
+## Implementation Checklist (Ralph Loop)
+
+> This checklist is designed for autonomous agent execution via a Ralph loop.
+> Each item is atomic, implementable independently, and ends with a commit.
+> Run `ralph-once.sh` to pick the next unchecked item, implement it, commit, and update `progress.txt`.
+
+### Phase 1 — Make It Distributable (P0/P1)
+
+- [ ] **P0-1**: Remove hardcoded assignee enum from schema
+  - `server/db/schema.ts`: change `assignee` from `'eduardo' | 'hawkbot'` to `text('assignee')` referencing `team.id`
+  - `server/api/tasks/index.get.ts`: update query joins
+  - `app/components/tasks/TaskCreateModal.vue`: replace hardcoded options with dynamic team fetch
+  - `app/components/tasks/TaskCard.vue`: update assignee display to use team member name/avatar
+
+- [ ] **P0-2**: Replace hardcoded DEFAULT_TEAM seed with config-driven import
+  - `server/utils/seed.ts`: read `~/.openclaw/openclaw.json`, parse `agents.list` + `identity` fields
+  - Fall back to a minimal default (one human "owner" + one "assistant" agent) if config not found
+  - Re-seed only if team table is empty; never overwrite existing records
+
+- [ ] **P0-3**: Add Team CRUD API endpoints
+  - `server/api/team/index.post.ts`: create team member (name, type, role, model, specialties, agentId)
+  - `server/api/team/[id].patch.ts`: update team member fields
+  - `server/api/team/[id].delete.ts`: soft-delete (set `active = false`)
+  - Validate: `type` must be `human | agent`; `agentId` must be unique if provided
+
+- [ ] **P0-4**: Add Team management UI
+  - New page `app/pages/team/index.vue`: list all team members with edit/delete actions
+  - Modal `app/components/team/TeamMemberModal.vue`: form for create/edit
+  - Integrate with TanStack Query (invalidate on mutation)
+
+- [ ] **P1-1**: Create Settings page
+  - `app/pages/settings/index.vue`: form with Gateway URL, Gateway Token, Workspace Path, Main Session ID
+  - `server/api/settings/index.get.ts` + `index.patch.ts`: read/write to a `settings` table in SQLite
+  - On save, validate gateway connectivity (ping `/api/health` on the gateway)
+  - `server/db/schema.ts`: add `settings` table (`key text PK`, `value text`, `updatedAt`)
+
+- [ ] **P1-2**: Make MAIN_SESSION_ID configurable
+  - `server/utils/dispatcher.ts`: replace hardcoded UUID with a lookup to `settings` table key `main_session_id`
+  - If not set, log a warning and skip dispatch (don't fail silently)
+
+- [ ] **P1-3**: Fix hardcoded Portuguese in dispatch prompt
+  - `server/utils/dispatcher.ts`: translate dispatch prompt to English
+  - Make prompt template a configurable string in `settings` table (key: `dispatch_prompt_template`)
+
+- [ ] **P1-4**: Add gateway health check indicator
+  - `server/api/gateway/health.get.ts`: probe gateway WebSocket/HTTP and return `{ connected: boolean, latencyMs: number }`
+  - `app/layouts/default.vue`: replace static sidebar indicator with live poll (every 30s via TanStack Query)
+
+- [ ] **P1-5**: Add npm package entry point and CLI launcher
+  - Add `bin/hawkbot-mission-control.js` — checks Node version, copies `.env.example` if no `.env`, runs `nuxt preview` (or `nuxt dev` if `--dev` flag)
+  - `package.json`: add `"bin": { "hawkbot-mission-control": "bin/hawkbot-mission-control.js" }`
+  - Test: `npx hawkbot-mission-control` should start the app on port 4000
+
+- [ ] **P1-6**: Add onboarding wizard
+  - `app/pages/onboarding/index.vue`: 4-step wizard (Welcome → Connect Gateway → Configure Workspace → Meet Your Team)
+  - Step 2: input Gateway URL + Token, validate live, save to settings
+  - Step 3: input Workspace path, validate it exists, save to settings
+  - Step 4: show auto-imported team from OpenClaw config, allow manual additions
+  - Redirect to `/onboarding` on first launch (detect via empty `settings` table)
+
+### Phase 2 — Feature Complete (P2)
+
+- [ ] **P2-1**: Content Pipeline — database and API
+  - `server/db/schema.ts`: verify `contentItems` table has all required fields (title, status, type, assigneeId, scriptUrl, thumbnailUrl, publishedUrl, metadata)
+  - `server/api/content/index.get.ts` + `index.post.ts`: list and create content items
+  - `server/api/content/[id].patch.ts` + `[id].delete.ts`: update status/fields, soft-delete
+
+- [ ] **P2-2**: Content Pipeline — UI
+  - `app/pages/content/index.vue`: Kanban board (Idea → Script → Thumbnail → Published)
+  - Reuse `TaskCard` pattern; add content-specific fields (type badge, thumbnail preview)
+  - Drag-and-drop status transitions via vue-draggable-plus (same as Tasks)
+
+- [ ] **P2-3**: Calendar grid view
+  - `app/pages/calendar/index.vue`: upgrade from list view to monthly grid (use `@fullcalendar/vue3` or build custom with CSS grid)
+  - Show cron jobs as recurring events; show one-shot `at` jobs as single events
+  - Click event → show cron job details (name, schedule, last run, next run)
+
+- [ ] **P2-4**: Telegram/Discord notifications on task status change
+  - `server/plugins/notifications.ts`: watch for task `status` transitions to `done` or `review`
+  - Send notification via OpenClaw Gateway message API (POST to gateway `/api/message`)
+  - Configurable: notification channel settable per team member in settings
+
+### Phase 3 — Distribution Polish (P3)
+
+- [ ] **P3-1**: Docker Compose setup
+  - `docker-compose.yml`: service for `hawkbot-mission-control` with volume mounts for `~/.openclaw` and SQLite data
+  - `Dockerfile`: multi-stage build (build → runtime), non-root user, health check
+  - Document in README: `docker compose up -d` one-liner
+
+- [ ] **P3-2**: Agent templates library
+  - `server/data/agent-templates.ts`: array of template definitions (Fullstack Dev, System Architect, Research, Ops, Writer)
+  - Each template: `{ id, name, role, model, specialties, systemPromptFile, suggestedTools }`
+  - `server/api/agent-templates/index.get.ts`: return available templates
+  - `app/pages/team/index.vue`: "Add from template" button in Team UI → opens template picker modal
+
+- [ ] **P3-3**: OpenClaw config generator
+  - `server/api/openclaw/export-config.get.ts`: generate `agents.list` YAML/JSON from current team table
+  - `app/pages/settings/index.vue`: "Export to OpenClaw" button → downloads generated config snippet
+  - Include instructions for merging into `~/.openclaw/openclaw.json`
+
+- [ ] **P3-4**: Shared space filesystem browser
+  - `server/api/shared/index.get.ts`: list files in configured shared space directory
+  - `server/api/shared/[...path].get.ts`: read file content
+  - `app/pages/shared/index.vue`: file tree with viewer (reuse Memory browser pattern)
+  - Configurable shared space path in settings (default: `{workspace}/../shared`)
+
