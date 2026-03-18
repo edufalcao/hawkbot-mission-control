@@ -1374,7 +1374,7 @@ Mission Control explicitly does **NOT** aim to be:
 
 ### Phase 1 — Make It Distributable (P0/P1)
 
-- [ ] **P0-1**: Remove hardcoded assignee enum from schema
+- [x] **P0-1**: Remove hardcoded assignee enum from schema
   - `server/db/schema.ts`: change `assignee` from `'eduardo' | 'hawkbot'` to `text('assignee')` referencing `team.id`
   - `server/api/tasks/index.get.ts`: update query joins
   - `app/components/tasks/TaskCreateModal.vue`: replace hardcoded options with dynamic team fetch

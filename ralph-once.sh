@@ -6,6 +6,7 @@ claude --model claude-opus-4-6 --permission-mode acceptEdits "@docs/PRD.md @prog
 1. Read the PRD Implementation Checklist and the progress file. \
 2. Find the next unchecked item [ ] (in order, starting from P0-1). \
 3. Implement it completely — edit all files mentioned in the checklist item. \
-4. Commit your changes with a descriptive message referencing the checklist item ID (e.g. feat: P0-1 remove hardcoded assignee enum). \
-5. Update progress.txt marking the item as done and noting what you did. \
+4. Mark the checklist item as done in docs/PRD.md (change [ ] to [x]). \
+5. Commit your changes with a descriptive message referencing the checklist item ID (e.g. feat: P0-1 remove hardcoded assignee enum). \
+6. Update progress.txt marking the item as done and noting what you did. \
 ONLY DO ONE CHECKLIST ITEM PER RUN."

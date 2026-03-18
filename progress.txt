@@ -1,0 +1,9 @@
+[x] P0-1: Remove hardcoded assignee enum from schema (commit 0beb9e2)
+  - Changed assignee from enum('eduardo','hawkbot') to plain text() in schema.ts
+  - Removed hardcoded DEFAULT from migration in db/index.ts
+  - TaskCreateModal: fetches team from /api/team, builds assignee dropdown dynamically
+  - TaskCard: accepts teamMembers prop, resolves assignee emoji+name from team data
+  - tasks.vue: fetches team members via useQuery, passes to TaskCard
+  - All API endpoints (GET/POST/PATCH/DELETE): resolve actor from team member lookup
+  - Dispatcher: looks up assignee by team_members.id instead of name
+  - Lint + typecheck pass
