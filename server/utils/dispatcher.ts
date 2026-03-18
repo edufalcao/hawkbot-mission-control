@@ -78,7 +78,7 @@ export function dispatchTask(task: TaskRow, db: Db) {
 }
 
 function spawnAgent(task: TaskRow, agent: Record<string, unknown>, sessionId: string, db: Db) {
-  const prompt = buildPrompt(task, agent);
+  const prompt = buildPrompt(task, agent, db);
   const escaped = prompt.replace(/"/g, '\\"');
   const cmd = `openclaw agent --session-id ${sessionId} --message "${escaped}"`;
 
@@ -121,7 +121,22 @@ function spawnAgent(task: TaskRow, agent: Record<string, unknown>, sessionId: st
   });
 }
 
-function buildPrompt(task: TaskRow, agent: Record<string, unknown>): string {
+const DEFAULT_DISPATCH_PROMPT = `New task from Mission Control:
+
+📋 **Agent:** {{agent_emoji}} {{agent_name}}
+🎯 **Specialties:** {{agent_specialties}}
+
+**{{task_title}}**
+{{task_description}}
+
+When finished: curl -X PATCH http://localhost:4000/api/tasks/{{task_id}} -H "Content-Type: application/json" -d '{"status":"review"}'`;
+
+function getDispatchPromptTemplate(db: Db): string {
+  const [row] = db.select().from(settings).where(eq(settings.key, 'dispatch_prompt_template')).limit(1).all();
+  return row?.value || DEFAULT_DISPATCH_PROMPT;
+}
+
+function buildPrompt(task: TaskRow, agent: Record<string, unknown>, db: Db): string {
   const rawSpecialties = agent.specialties;
   const parsedSpecialties = Array.isArray(rawSpecialties)
     ? rawSpecialties
@@ -132,12 +147,14 @@ function buildPrompt(task: TaskRow, agent: Record<string, unknown>): string {
           return [rawSpecialties];
         }
       })();
-  const agentInfo = `\n📋 **Agente:** ${agent.emoji} ${agent.name}\n🎯 **Especialidades:** ${parsedSpecialties.join(', ')}`;
 
-  return `Nova task no Mission Control:${agentInfo}
+  const template = getDispatchPromptTemplate(db);
 
-**${task.title}**
-${task.description || ''}
-
-Quando terminar: curl -X PATCH http://localhost:4000/api/tasks/${task.id} -H "Content-Type: application/json" -d '{"status":"review"}'`;
+  return template
+    .replace(/\{\{agent_emoji\}\}/g, String(agent.emoji || '🤖'))
+    .replace(/\{\{agent_name\}\}/g, String(agent.name || 'Agent'))
+    .replace(/\{\{agent_specialties\}\}/g, parsedSpecialties.join(', '))
+    .replace(/\{\{task_title\}\}/g, task.title)
+    .replace(/\{\{task_description\}\}/g, task.description || '')
+    .replace(/\{\{task_id\}\}/g, task.id);
 }

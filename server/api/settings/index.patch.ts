@@ -6,7 +6,8 @@ const ALLOWED_KEYS = [
   'gateway_url',
   'gateway_token',
   'workspace_path',
-  'main_session_id'
+  'main_session_id',
+  'dispatch_prompt_template'
 ];
 
 export default defineEventHandler(async (event) => {

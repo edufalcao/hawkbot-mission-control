@@ -1406,7 +1406,7 @@ Mission Control explicitly does **NOT** aim to be:
   - `server/utils/dispatcher.ts`: replace hardcoded UUID with a lookup to `settings` table key `main_session_id`
   - If not set, log a warning and skip dispatch (don't fail silently)
 
-- [ ] **P1-3**: Fix hardcoded Portuguese in dispatch prompt
+- [x] **P1-3**: Fix hardcoded Portuguese in dispatch prompt
   - `server/utils/dispatcher.ts`: translate dispatch prompt to English
   - Make prompt template a configurable string in `settings` table (key: `dispatch_prompt_template`)
 

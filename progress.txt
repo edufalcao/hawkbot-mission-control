@@ -47,3 +47,11 @@
   - dispatchTask() now checks for session ID before dispatching; logs warning and skips if not set
   - spawnAgent() accepts sessionId as parameter instead of using global constant
   - Lint + typecheck pass
+[x] P1-3: Fix hardcoded Portuguese in dispatch prompt
+  - server/utils/dispatcher.ts: translated buildPrompt from Portuguese to English
+  - Extracted DEFAULT_DISPATCH_PROMPT constant with template variables ({{agent_emoji}}, {{agent_name}}, {{agent_specialties}}, {{task_title}}, {{task_description}}, {{task_id}})
+  - Added getDispatchPromptTemplate() helper that reads `dispatch_prompt_template` from settings table, falls back to default
+  - buildPrompt() now uses string replacement on the template instead of hardcoded interpolation
+  - server/api/settings/index.patch.ts: added `dispatch_prompt_template` to ALLOWED_KEYS
+  - app/pages/settings.vue: added Dispatch Prompt Template textarea field with variable reference docs
+  - Lint + typecheck pass

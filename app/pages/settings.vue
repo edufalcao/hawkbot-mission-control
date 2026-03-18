@@ -109,6 +109,25 @@
             OpenClaw session ID used when dispatching tasks to agents
           </p>
         </div>
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-300 mb-1.5">Dispatch Prompt Template</label>
+          <UTextarea
+            v-model="form.dispatch_prompt_template"
+            :rows="8"
+            placeholder="New task from Mission Control: ..."
+            size="lg"
+            class="w-full font-mono text-sm"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            Template for the prompt sent to agents. Available variables:
+            <code
+              v-for="v in templateVars"
+              :key="v"
+              class="text-gray-400 mr-1"
+              v-text="v"
+            />
+          </p>
+        </div>
       </section>
 
       <!-- Actions -->
@@ -154,9 +173,18 @@ const form = reactive({
   gateway_url: '',
   gateway_token: '',
   workspace_path: '',
-  main_session_id: ''
+  main_session_id: '',
+  dispatch_prompt_template: ''
 });
 
+const templateVars = [
+  '{{agent_emoji}}',
+  '{{agent_name}}',
+  '{{agent_specialties}}',
+  '{{task_title}}',
+  '{{task_description}}',
+  '{{task_id}}'
+];
 const showToken = ref(false);
 const saving = ref(false);
 const saveMessage = ref('');
@@ -169,6 +197,7 @@ watch(data, (val) => {
     form.gateway_token = val.gateway_token || '';
     form.workspace_path = val.workspace_path || '';
     form.main_session_id = val.main_session_id || '';
+    form.dispatch_prompt_template = val.dispatch_prompt_template || '';
   }
 }, { immediate: true });
 
@@ -177,7 +206,8 @@ const hasChanges = computed(() => {
   return form.gateway_url !== (data.value.gateway_url || '')
     || form.gateway_token !== (data.value.gateway_token || '')
     || form.workspace_path !== (data.value.workspace_path || '')
-    || form.main_session_id !== (data.value.main_session_id || '');
+    || form.main_session_id !== (data.value.main_session_id || '')
+    || form.dispatch_prompt_template !== (data.value.dispatch_prompt_template || '');
 });
 
 function resetForm() {
@@ -186,6 +216,7 @@ function resetForm() {
     form.gateway_token = data.value.gateway_token || '';
     form.workspace_path = data.value.workspace_path || '';
     form.main_session_id = data.value.main_session_id || '';
+    form.dispatch_prompt_template = data.value.dispatch_prompt_template || '';
   }
   saveMessage.value = '';
 }
@@ -201,7 +232,8 @@ async function saveSettings() {
         gateway_url: form.gateway_url,
         gateway_token: form.gateway_token,
         workspace_path: form.workspace_path,
-        main_session_id: form.main_session_id
+        main_session_id: form.main_session_id,
+        ...(form.dispatch_prompt_template ? { dispatch_prompt_template: form.dispatch_prompt_template } : {})
       }
     });
     queryClient.invalidateQueries({ queryKey: ['settings'] });
