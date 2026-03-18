@@ -2,6 +2,10 @@
   "name": "hawkbot-mission-control",
   "private": true,
   "type": "module",
+  "bin": {
+    "hawkbot-mission-control": "bin/hawkbot-mission-control.mjs",
+    "mission-control": "bin/hawkbot-mission-control.mjs"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

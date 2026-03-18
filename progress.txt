@@ -61,3 +61,11 @@
   - app/layouts/default.vue: replaced static "Gateway connected" indicator with live-polled status via TanStack Query (30s interval)
   - Sidebar indicator: green pulse when connected (shows latency ms), red dot when disconnected
   - Lint + typecheck pass
+[x] P1-5: Add npm package entry point and CLI launcher
+  - bin/hawkbot-mission-control.mjs: CLI entry point with Node.js version check, OpenClaw config auto-detection, .env bootstrap
+  - Auto-reads ~/.openclaw/openclaw.json for gateway URL, token, and workspace path
+  - CLI flags: --port, --gateway, --workspace, --dev, --no-open, --help
+  - Runs nuxt dev (--dev flag) or production build (.output/server/index.mjs) with auto-build if missing
+  - Opens browser automatically after 2s (disable with --no-open)
+  - package.json: added bin field with "hawkbot-mission-control" and "mission-control" aliases
+  - Lint + typecheck pass

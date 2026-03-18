@@ -1414,7 +1414,7 @@ Mission Control explicitly does **NOT** aim to be:
   - `server/api/gateway/health.get.ts`: probe gateway WebSocket/HTTP and return `{ connected: boolean, latencyMs: number }`
   - `app/layouts/default.vue`: replace static sidebar indicator with live poll (every 30s via TanStack Query)
 
-- [ ] **P1-5**: Add npm package entry point and CLI launcher
+- [x] **P1-5**: Add npm package entry point and CLI launcher
   - Add `bin/hawkbot-mission-control.js` — checks Node version, copies `.env.example` if no `.env`, runs `nuxt preview` (or `nuxt dev` if `--dev` flag)
   - `package.json`: add `"bin": { "hawkbot-mission-control": "bin/hawkbot-mission-control.js" }`
   - Test: `npx hawkbot-mission-control` should start the app on port 4000
