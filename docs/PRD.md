@@ -1391,7 +1391,7 @@ Mission Control explicitly does **NOT** aim to be:
   - `server/api/team/[id].delete.ts`: soft-delete (set `active = false`)
   - Validate: `type` must be `human | agent`; `agentId` must be unique if provided
 
-- [ ] **P0-4**: Add Team management UI
+- [x] **P0-4**: Add Team management UI
   - New page `app/pages/team/index.vue`: list all team members with edit/delete actions
   - Modal `app/components/team/TeamMemberModal.vue`: form for create/edit
   - Integrate with TanStack Query (invalidate on mutation)
