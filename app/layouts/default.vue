@@ -85,15 +85,17 @@ interface GatewayHealth {
   uptimeMs: number | null
 }
 
-const { data: health } = useQuery<GatewayHealth>({
+const { data: health, status } = useQuery<GatewayHealth>({
   queryKey: ['gateway-health'],
   queryFn: () => $fetch('/api/gateway/health'),
   refetchInterval: 30_000
 });
 
-const gatewayConnected = computed(() => health.value?.connected ?? false);
+// Show green while loading (assume connected) — only show red after a fetch confirms disconnected
+const gatewayConnected = computed(() => status.value === 'pending' || health.value?.connected === true);
 
 const gatewayStatusLabel = computed(() => {
+  if (status.value === 'pending') return 'Gateway connecting...';
   if (!health.value?.connected) return 'Gateway disconnected';
   if (health.value.latencyMs != null) return `Gateway connected (${health.value.latencyMs}ms)`;
   return 'Gateway connected';
