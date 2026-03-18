@@ -44,6 +44,8 @@ export const teamMembers = sqliteTable('team_members', {
   status: text('status', { enum: ['active', 'idle', 'busy'] }).notNull().default('idle'),
   currentTaskId: text('current_task_id'),
   lastUsed: text('last_used'),
+  openclawAgentId: text('openclaw_agent_id'), // maps to agents.list[].name in openclaw.json
+  agentDir: text('agent_dir'), // agent workspace directory path
   usageCount: integer('usage_count').default(0),
   successCount: integer('success_count').default(0),
   createdAt: text('created_at').notNull()

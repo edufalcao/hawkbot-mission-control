@@ -69,6 +69,8 @@ function runMigrations(sqlite: Database.Database) {
       status TEXT NOT NULL DEFAULT 'idle',
       current_task_id TEXT,
       last_used TEXT,
+      openclaw_agent_id TEXT,
+      agent_dir TEXT,
       usage_count INTEGER DEFAULT 0,
       success_count INTEGER DEFAULT 0,
       created_at TEXT NOT NULL
@@ -89,7 +91,9 @@ function runMigrations(sqlite: Database.Database) {
   const alterations = [
     'ALTER TABLE tasks ADD COLUMN session_key TEXT',
     'ALTER TABLE tasks ADD COLUMN dispatched_at TEXT',
-    'ALTER TABLE team_members ADD COLUMN member_type TEXT NOT NULL DEFAULT \'agent\''
+    'ALTER TABLE team_members ADD COLUMN member_type TEXT NOT NULL DEFAULT \'agent\'',
+    'ALTER TABLE team_members ADD COLUMN openclaw_agent_id TEXT',
+    'ALTER TABLE team_members ADD COLUMN agent_dir TEXT'
   ];
   for (const sql of alterations) {
     try {

@@ -7,3 +7,12 @@
   - All API endpoints (GET/POST/PATCH/DELETE): resolve actor from team member lookup
   - Dispatcher: looks up assignee by team_members.id instead of name
   - Lint + typecheck pass
+[x] P0-2: Replace hardcoded DEFAULT_TEAM seed with config-driven import
+  - server/utils/seed.ts: rewrote to read ~/.openclaw/openclaw.json agents.list
+  - Infers emoji and role from agent name (dev→💻, research→🔍, ops→⚙️, writer→✍️)
+  - Adds current OS user as human "owner" member
+  - Falls back to minimal team (1 human owner + 1 assistant agent) if config not found
+  - Only seeds if team table is completely empty — never overwrites existing records
+  - server/db/schema.ts: added openclaw_agent_id and agent_dir columns to team_members
+  - server/db/index.ts: added ALTER TABLE migrations for new columns + CREATE TABLE update
+  - Lint + typecheck pass

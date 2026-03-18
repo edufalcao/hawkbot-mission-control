@@ -1380,7 +1380,7 @@ Mission Control explicitly does **NOT** aim to be:
   - `app/components/tasks/TaskCreateModal.vue`: replace hardcoded options with dynamic team fetch
   - `app/components/tasks/TaskCard.vue`: update assignee display to use team member name/avatar
 
-- [ ] **P0-2**: Replace hardcoded DEFAULT_TEAM seed with config-driven import
+- [x] **P0-2**: Replace hardcoded DEFAULT_TEAM seed with config-driven import
   - `server/utils/seed.ts`: read `~/.openclaw/openclaw.json`, parse `agents.list` + `identity` fields
   - Fall back to a minimal default (one human "owner" + one "assistant" agent) if config not found
   - Re-seed only if team table is empty; never overwrite existing records
