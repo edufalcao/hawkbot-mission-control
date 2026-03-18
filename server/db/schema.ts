@@ -6,7 +6,7 @@ export const tasks = sqliteTable('tasks', {
   title: text('title').notNull(),
   description: text('description').default(''),
   status: text('status', { enum: ['todo', 'in_progress', 'review', 'done'] }).notNull().default('todo'),
-  assignee: text('assignee', { enum: ['eduardo', 'hawkbot'] }).notNull().default('eduardo'),
+  assignee: text('assignee').notNull(),
   priority: text('priority', { enum: ['high', 'medium', 'low', 'none'] }).notNull().default('none'),
   tags: text('tags').default('[]'), // JSON array
   createdAt: text('created_at').notNull(),

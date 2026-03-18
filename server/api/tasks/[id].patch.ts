@@ -1,5 +1,5 @@
 import { useDb } from '../../db';
-import { tasks, activityLog } from '../../db/schema';
+import { tasks, activityLog, teamMembers } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { broadcastToClients } from '../../utils/gateway';
 import { dispatchTask } from '../../utils/dispatcher';
@@ -31,11 +31,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Task not found' });
   }
 
+  // Look up assignee for activity log actor
+  const [member] = await db.select().from(teamMembers).where(eq(teamMembers.id, updated.assignee)).limit(1);
+  const actorName = member?.name || 'system';
+
   // Log activity
   const logEntry = {
     id: uuidv4(),
     type: body.status === 'done' ? 'task_completed' as const : 'task_updated' as const,
-    actor: 'hawkbot',
+    actor: actorName,
     message: body.status
       ? `Task "${updated.title}" moved to ${body.status}`
       : `Task "${updated.title}" updated`,

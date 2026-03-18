@@ -80,6 +80,7 @@
           >
             <TaskCard
               :task="task"
+              :team-members="teamMembers || []"
               @update="handleUpdate"
               @delete="handleDelete"
             />
@@ -120,6 +121,13 @@ interface Task {
   createdAt: string
 }
 
+interface TeamMember {
+  id: string,
+  name: string,
+  emoji: string,
+  memberType: string
+}
+
 type ColumnId = 'todo' | 'in_progress' | 'review' | 'done';
 
 const COLUMNS: { id: ColumnId, label: string, emoji: string, color: 'neutral' | 'warning' | 'info' | 'success' }[] = [
@@ -147,6 +155,11 @@ const { data: tasks, isLoading: pending, refetch } = useQuery({
   queryFn: () => $fetch<Task[]>('/api/tasks'),
   refetchInterval: 60000,
   refetchIntervalInBackground: false
+});
+
+const { data: teamMembers } = useQuery({
+  queryKey: ['team'],
+  queryFn: () => $fetch<TeamMember[]>('/api/team')
 });
 
 // Sync server data → local column lists

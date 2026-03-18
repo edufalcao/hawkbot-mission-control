@@ -36,7 +36,7 @@ function runMigrations(sqlite: Database.Database) {
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT 'todo',
-      assignee TEXT NOT NULL DEFAULT 'eduardo',
+      assignee TEXT NOT NULL,
       priority TEXT NOT NULL DEFAULT 'none',
       tags TEXT DEFAULT '[]',
       created_at TEXT NOT NULL,

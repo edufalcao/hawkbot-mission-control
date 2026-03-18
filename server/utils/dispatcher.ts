@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { tasks, teamMembers, activityLog } from '../db/schema';
 import type { useDb } from '../db';
 import { broadcastToClients } from './gateway';
@@ -27,8 +27,8 @@ export function isDispatching(taskId: string): boolean {
 export function dispatchTask(task: TaskRow, db: Db) {
   console.log(`[dispatcher] dispatchTask called for "${task.title}" (assignee: ${task.assignee})`);
 
-  // Look up assignee to check member type
-  const [member] = db.select().from(teamMembers).where(sql`lower(${teamMembers.name}) = lower(${task.assignee})`).limit(1).all();
+  // Look up assignee by team member ID to check member type
+  const [member] = db.select().from(teamMembers).where(eq(teamMembers.id, task.assignee)).limit(1).all();
 
   console.log(`[dispatcher] Member lookup result:`, member ? `${member.name} (${member.memberType})` : 'NOT FOUND');
 

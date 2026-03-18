@@ -1,5 +1,5 @@
 import { useDb } from '../../db';
-import { tasks, activityLog } from '../../db/schema';
+import { tasks, activityLog, teamMembers } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { broadcastToClients } from '../../utils/gateway';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,10 +16,14 @@ export default defineEventHandler(async (event) => {
 
   // Log activity and broadcast
   if (existing) {
+    // Look up assignee for activity log actor
+    const [member] = await db.select().from(teamMembers).where(eq(teamMembers.id, existing.assignee)).limit(1);
+    const actorName = member?.name || 'system';
+
     const logEntry = {
       id: uuidv4(),
       type: 'task_updated' as const,
-      actor: 'eduardo',
+      actor: actorName,
       message: `Task deleted: "${existing.title}"`,
       taskId: id,
       metadata: JSON.stringify({}),

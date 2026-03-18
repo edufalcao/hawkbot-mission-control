@@ -74,7 +74,7 @@
           </UButton>
           <UButton
             :loading="loading"
-            :disabled="!form.title.trim()"
+            :disabled="!form.title.trim() || !form.assignee"
             @click="submit"
           >
             Create Task
@@ -86,6 +86,15 @@
 </template>
 
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query';
+
+interface TeamMember {
+  id: string,
+  name: string,
+  emoji: string,
+  memberType: string
+}
+
 const open = defineModel<boolean>();
 const emit = defineEmits<{ created: [] }>();
 
@@ -96,14 +105,30 @@ const tagsInput = ref('');
 const form = reactive({
   title: '',
   description: '',
-  assignee: 'eduardo',
+  assignee: '',
   priority: 'none'
 });
 
-const assigneeOptions = [
-  { label: '👤 Eduardo', value: 'eduardo' },
-  { label: '🦅 HawkBot', value: 'hawkbot' }
-];
+const { data: teamData } = useQuery({
+  queryKey: ['team'],
+  queryFn: () => $fetch<TeamMember[]>('/api/team')
+});
+
+const assigneeOptions = computed(() => {
+  if (!teamData.value) return [];
+  return teamData.value.map(m => ({
+    label: `${m.emoji} ${m.name}`,
+    value: m.id
+  }));
+});
+
+// Set default assignee when team data loads
+watch(teamData, (members) => {
+  if (members?.length && !form.assignee) {
+    const firstHuman = members.find(m => m.memberType === 'human');
+    form.assignee = firstHuman?.id ?? members[0]!.id;
+  }
+}, { immediate: true });
 
 const priorityOptions = [
   { label: '— None', value: 'none' },
@@ -113,7 +138,7 @@ const priorityOptions = [
 ];
 
 async function submit() {
-  if (!form.title.trim()) return;
+  if (!form.title.trim() || !form.assignee) return;
   loading.value = true;
   error.value = '';
 
@@ -139,7 +164,14 @@ async function submit() {
 function resetForm() {
   form.title = '';
   form.description = '';
-  form.assignee = 'eduardo';
+  // Reset assignee to default (first human member)
+  const members = teamData.value;
+  if (members?.length) {
+    const firstHuman = members.find(m => m.memberType === 'human');
+    form.assignee = firstHuman?.id ?? members[0]!.id;
+  } else {
+    form.assignee = '';
+  }
   form.priority = 'none';
   tagsInput.value = '';
   error.value = '';

@@ -13,11 +13,11 @@
           }"
         />
         <UBadge
-          :color="task.assignee === 'hawkbot' ? 'secondary' : 'neutral'"
+          :color="assigneeMember?.memberType === 'agent' ? 'secondary' : 'neutral'"
           size="xs"
           variant="subtle"
         >
-          {{ task.assignee === 'hawkbot' ? '🦅 HawkBot' : '👤 Eduardo' }}
+          {{ assigneeMember ? `${assigneeMember.emoji} ${assigneeMember.name}` : task.assignee }}
         </UBadge>
       </div>
 
@@ -71,6 +71,13 @@
 </template>
 
 <script setup lang="ts">
+interface TeamMember {
+  id: string,
+  name: string,
+  emoji: string,
+  memberType: string
+}
+
 const props = defineProps<{
   task: {
     id: string,
@@ -81,13 +88,18 @@ const props = defineProps<{
     priority: string,
     tags: string[],
     createdAt: string
-  }
+  },
+  teamMembers: TeamMember[]
 }>();
 
 const emit = defineEmits<{
   update: [data: { id: string, status?: string }],
   delete: [id: string]
 }>();
+
+const assigneeMember = computed(() => {
+  return props.teamMembers.find(m => m.id === props.task.assignee);
+});
 
 const STATUS_NEXT: Record<string, { label: string, value: string }[]> = {
   todo: [{ label: '⚡ Start', value: 'in_progress' }],
@@ -119,6 +131,6 @@ const actionItems = computed(() => {
 });
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
 }
 </script>

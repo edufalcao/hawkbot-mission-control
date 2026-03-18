@@ -3,7 +3,6 @@ import { tasks } from '../../db/schema';
 import { eq, desc, type SQL } from 'drizzle-orm';
 
 type TaskStatus = typeof tasks.status.enumValues[number];
-type TaskAssignee = typeof tasks.assignee.enumValues[number];
 
 export default defineEventHandler(async (event) => {
   const db = useDb();
@@ -14,7 +13,7 @@ export default defineEventHandler(async (event) => {
   if (query.status) {
     condition = eq(tasks.status, query.status as TaskStatus);
   } else if (query.assignee) {
-    condition = eq(tasks.assignee, query.assignee as TaskAssignee);
+    condition = eq(tasks.assignee, query.assignee as string);
   }
 
   const rows = await db.select().from(tasks)
