@@ -104,7 +104,7 @@ mission-control
 | **npm package** | ✅ Chosen | Target users already have Node.js. Zero friction. Single command. |
 | Template repo (clone) | ❌ Rejected | Forces git clone workflow. Users don't need to edit source. Updates require manual pulls. |
 | Docker | ✅ Phase 3 add-on | Good for VPS deployments. Too heavy for local dev. Offered as alternative, not primary. |
-| OpenClaw plugin | ❌ Premature | OpenClaw doesn't have a plugin marketplace yet. When it does, Mission Control should be listed there. |
+| OpenClaw plugin | ❌ Premature | OpenClaw doesn't have a plugin marketplace yet. |
 
 ### Package Structure
 
@@ -1244,9 +1244,8 @@ What's missing to complete Phase 1:
 | Task templates / recurring tasks | P2 | 3 days |
 | libsql migration (drop node-gyp requirement) | P2 | 3 days |
 | Plugin system for custom pages | P3 | 2 weeks |
-| OpenClaw plugin marketplace listing | P3 | 1 week |
 
-**Milestone:** Mission Control is the recommended way to manage multi-agent OpenClaw setups. Featured in OpenClaw documentation.
+**Milestone:** Mission Control is the go-to dashboard for multi-agent OpenClaw setups.
 
 ---
 
