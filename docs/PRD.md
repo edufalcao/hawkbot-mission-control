@@ -1410,7 +1410,7 @@ Mission Control explicitly does **NOT** aim to be:
   - `server/utils/dispatcher.ts`: translate dispatch prompt to English
   - Make prompt template a configurable string in `settings` table (key: `dispatch_prompt_template`)
 
-- [ ] **P1-4**: Add gateway health check indicator
+- [x] **P1-4**: Add gateway health check indicator
   - `server/api/gateway/health.get.ts`: probe gateway WebSocket/HTTP and return `{ connected: boolean, latencyMs: number }`
   - `app/layouts/default.vue`: replace static sidebar indicator with live poll (every 30s via TanStack Query)
 

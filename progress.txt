@@ -55,3 +55,9 @@
   - server/api/settings/index.patch.ts: added `dispatch_prompt_template` to ALLOWED_KEYS
   - app/pages/settings.vue: added Dispatch Prompt Template textarea field with variable reference docs
   - Lint + typecheck pass
+[x] P1-4: Add gateway health check indicator
+  - server/api/gateway/health.get.ts: new endpoint returns { connected, latencyMs, connectedAt, uptimeMs }
+  - server/utils/gateway.ts: added getGatewayHealth() export, tracks _connectedAt timestamp and ping/pong latency
+  - app/layouts/default.vue: replaced static "Gateway connected" indicator with live-polled status via TanStack Query (30s interval)
+  - Sidebar indicator: green pulse when connected (shows latency ms), red dot when disconnected
+  - Lint + typecheck pass

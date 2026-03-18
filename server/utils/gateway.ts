@@ -5,9 +5,21 @@ let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let _pingInterval: ReturnType<typeof setInterval> | null = null;
 let _connected = false;
+let _connectedAt: number | null = null;
+let _lastPingAt: number | null = null;
+let _latencyMs: number | null = null;
 
 export function isGatewayConnected(): boolean {
   return _connected;
+}
+
+export function getGatewayHealth() {
+  return {
+    connected: _connected,
+    latencyMs: _latencyMs,
+    connectedAt: _connectedAt ? new Date(_connectedAt).toISOString() : null,
+    uptimeMs: _connectedAt && _connected ? Date.now() - _connectedAt : null
+  };
 }
 
 export function getGatewayWs(): WebSocket | null {
@@ -57,6 +69,7 @@ function handleGatewayMessage(data: WebSocket.RawData, token: string) {
     // Handle successful handshake response
     if (msg.type === 'res' && msg.ok && msg.payload?.type === 'hello-ok') {
       _connected = true;
+      _connectedAt = Date.now();
       console.log(`[gateway] Handshake complete (protocol ${msg.payload.protocol}, server ${msg.payload.server?.version})`);
       return;
     }
@@ -95,12 +108,20 @@ export function connectGateway() {
     console.log('[gateway] Connected, awaiting handshake...');
     clearTimers();
 
-    // Send ping every 30s to keep the connection alive
+    // Send ping every 30s to keep the connection alive and measure latency
     _pingInterval = setInterval(() => {
       if (_ws?.readyState === WebSocket.OPEN) {
+        _lastPingAt = Date.now();
         _ws.ping();
       }
     }, 30_000);
+  });
+
+  _ws.on('pong', () => {
+    if (_lastPingAt) {
+      _latencyMs = Date.now() - _lastPingAt;
+      _lastPingAt = null;
+    }
   });
 
   _ws.on('message', data => handleGatewayMessage(data, token));
@@ -112,6 +133,9 @@ export function connectGateway() {
   _ws.on('close', (code, reason) => {
     const wasConnected = _connected;
     _connected = false;
+    _connectedAt = null;
+    _latencyMs = null;
+    _lastPingAt = null;
     _ws = null;
     clearTimers();
 

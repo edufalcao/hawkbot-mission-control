@@ -59,8 +59,11 @@
       <!-- Live indicator -->
       <div class="px-4 py-3 border-t border-gray-800">
         <div class="flex items-center gap-2 text-xs text-gray-400">
-          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Gateway connected
+          <span
+            class="w-2 h-2 rounded-full"
+            :class="gatewayConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'"
+          />
+          <span>{{ gatewayStatusLabel }}</span>
         </div>
       </div>
     </aside>
@@ -73,5 +76,26 @@
 </template>
 
 <script setup lang="ts">
-// Layout
+import { useQuery } from '@tanstack/vue-query';
+
+interface GatewayHealth {
+  connected: boolean,
+  latencyMs: number | null,
+  connectedAt: string | null,
+  uptimeMs: number | null
+}
+
+const { data: health } = useQuery<GatewayHealth>({
+  queryKey: ['gateway-health'],
+  queryFn: () => $fetch('/api/gateway/health'),
+  refetchInterval: 30_000
+});
+
+const gatewayConnected = computed(() => health.value?.connected ?? false);
+
+const gatewayStatusLabel = computed(() => {
+  if (!health.value?.connected) return 'Gateway disconnected';
+  if (health.value.latencyMs != null) return `Gateway connected (${health.value.latencyMs}ms)`;
+  return 'Gateway connected';
+});
 </script>
