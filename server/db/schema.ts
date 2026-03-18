@@ -51,6 +51,13 @@ export const teamMembers = sqliteTable('team_members', {
   createdAt: text('created_at').notNull()
 });
 
+// Settings (key-value store)
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').notNull()
+});
+
 // Activity log (live feed)
 export const activityLog = sqliteTable('activity_log', {
   id: text('id').primaryKey(),

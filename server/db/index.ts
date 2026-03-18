@@ -76,6 +76,12 @@ function runMigrations(sqlite: Database.Database) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS activity_log (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,

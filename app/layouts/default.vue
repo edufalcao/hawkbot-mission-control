@@ -49,6 +49,11 @@
           icon="i-lucide-building-2"
           label="Office"
         />
+        <NavItem
+          to="/settings"
+          icon="i-lucide-settings"
+          label="Settings"
+        />
       </nav>
 
       <!-- Live indicator -->

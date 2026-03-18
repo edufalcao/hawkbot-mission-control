@@ -32,3 +32,12 @@
   - Delete action shows confirmation modal, then DELETEs via API
   - Switched from useFetch to TanStack useQuery with 10s polling + invalidation on mutations
   - Lint + typecheck pass
+[x] P1-1: Create Settings page
+  - server/db/schema.ts: added `settings` table (key TEXT PK, value TEXT, updated_at TEXT)
+  - server/db/index.ts: added CREATE TABLE IF NOT EXISTS settings migration
+  - server/api/settings/index.get.ts: returns all settings as key-value object
+  - server/api/settings/index.patch.ts: upsert settings with validation (allowed keys: gateway_url, gateway_token, workspace_path, main_session_id)
+  - app/pages/settings.vue: settings form with Gateway URL, Gateway Token (masked), Workspace Path, Main Session ID
+  - app/layouts/default.vue: added Settings nav item to sidebar
+  - Form loads from DB, tracks changes, saves via PATCH, shows success/error feedback
+  - Lint + typecheck pass

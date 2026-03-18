@@ -1396,7 +1396,7 @@ Mission Control explicitly does **NOT** aim to be:
   - Modal `app/components/team/TeamMemberModal.vue`: form for create/edit
   - Integrate with TanStack Query (invalidate on mutation)
 
-- [ ] **P1-1**: Create Settings page
+- [x] **P1-1**: Create Settings page
   - `app/pages/settings/index.vue`: form with Gateway URL, Gateway Token, Workspace Path, Main Session ID
   - `server/api/settings/index.get.ts` + `index.patch.ts`: read/write to a `settings` table in SQLite
   - On save, validate gateway connectivity (ping `/api/health` on the gateway)
