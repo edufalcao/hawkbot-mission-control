@@ -4,6 +4,21 @@ import { eq } from 'drizzle-orm';
 import { broadcastToClients } from '../../utils/gateway';
 import { v4 as uuidv4 } from 'uuid';
 
+const RUNTIME_PROVIDERS = ['openclaw', 'hermes', 'manual'] as const;
+type RuntimeProvider = typeof RUNTIME_PROVIDERS[number];
+
+function normalizeRuntimeProvider(value: unknown): RuntimeProvider | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value !== 'string' || !RUNTIME_PROVIDERS.includes(value as RuntimeProvider)) {
+    throw createError({ statusCode: 400, message: 'runtimeProvider must be "openclaw", "hermes", or "manual"' });
+  }
+  return value as RuntimeProvider;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 export default defineEventHandler(async (event) => {
   const db = useDb();
   const body = await readBody(event);
@@ -40,6 +55,10 @@ export default defineEventHandler(async (event) => {
     status: 'idle' as const,
     currentTaskId: null,
     lastUsed: null,
+    runtimeProvider: normalizeRuntimeProvider(body.runtimeProvider) || (body.memberType === 'human' ? 'manual' : 'openclaw'),
+    runtimeProfile: optionalString(body.runtimeProfile),
+    runtimeCommand: optionalString(body.runtimeCommand),
+    runtimeWorkdir: optionalString(body.runtimeWorkdir),
     openclawAgentId: body.openclawAgentId || null,
     agentDir: body.agentDir || null,
     usageCount: 0,

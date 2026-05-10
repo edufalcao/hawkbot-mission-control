@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { tasks, teamMembers, activityLog, settings } from '../db/schema';
 import type { useDb } from '../db';
 import { broadcastToClients } from './gateway';
+import { getRuntimeAdapter } from './runtimes';
+import type { RuntimeAgent, RuntimeProvider, RuntimeSettings } from './runtimes/types';
 import { v4 as uuidv4 } from 'uuid';
 
 type Db = ReturnType<typeof useDb>;
@@ -10,9 +12,11 @@ type Db = ReturnType<typeof useDb>;
 // Track dispatching state in memory
 const _dispatching = new Set<string>();
 
-function getMainSessionId(db: Db): string | null {
-  const [row] = db.select().from(settings).where(eq(settings.key, 'main_session_id')).limit(1).all();
-  return row?.value ?? null;
+function getSettings(db: Db): RuntimeSettings {
+  const rows = db.select().from(settings).all();
+  const result: RuntimeSettings = {};
+  for (const row of rows) result[row.key] = row.value;
+  return result;
 }
 
 interface TaskRow {
@@ -27,6 +31,12 @@ export function isDispatching(taskId: string): boolean {
   return _dispatching.has(taskId);
 }
 
+function getRuntimeProvider(agent: RuntimeAgent, settingsMap: RuntimeSettings): RuntimeProvider {
+  const provider = agent.runtimeProvider || settingsMap.default_runtime_provider || 'openclaw';
+  if (provider === 'openclaw' || provider === 'hermes' || provider === 'manual') return provider;
+  return 'openclaw';
+}
+
 export function dispatchTask(task: TaskRow, db: Db) {
   console.log(`[dispatcher] dispatchTask called for "${task.title}" (assignee: ${task.assignee})`);
 
@@ -38,9 +48,10 @@ export function dispatchTask(task: TaskRow, db: Db) {
   // Only auto-dispatch tasks assigned to agents, not human users
   if (!member || member.memberType === 'human') return;
 
-  const sessionId = getMainSessionId(db);
-  if (!sessionId) {
-    console.warn(`[dispatcher] Skipping "${task.title}" — main_session_id not configured in settings. Set it via the Settings page.`);
+  const settingsMap = getSettings(db);
+  const provider = getRuntimeProvider(member, settingsMap);
+  if (provider === 'manual') {
+    console.log(`[dispatcher] Skipping "${task.title}" — agent runtime is manual`);
     return;
   }
 
@@ -64,59 +75,94 @@ export function dispatchTask(task: TaskRow, db: Db) {
     id: uuidv4(),
     type: 'task_updated' as const,
     actor: 'system',
-    message: `Task "${task.title}" dispatched to agent`,
+    message: `Task "${task.title}" dispatched to ${provider} agent`,
     taskId: task.id,
-    metadata: JSON.stringify({}),
+    metadata: JSON.stringify({ provider }),
     createdAt: now
   };
   db.insert(activityLog).values(logEntry).run();
   broadcastToClients({ event: 'task_updated', task: { ...task, status: 'in_progress' }, log: logEntry });
 
-  console.log(`[dispatcher] Dispatching: "${task.title}"`);
+  console.log(`[dispatcher] Dispatching: "${task.title}" via ${provider}`);
 
-  spawnAgent(task, member, sessionId, db);
+  spawnAgent(task, member, settingsMap, provider, db);
 }
 
-function spawnAgent(task: TaskRow, agent: Record<string, unknown>, sessionId: string, db: Db) {
-  const prompt = buildPrompt(task, agent, db);
-  const escaped = prompt.replace(/"/g, '\\"');
-  const cmd = `openclaw agent --session-id ${sessionId} --message "${escaped}"`;
+function revertDispatch(task: TaskRow, db: Db, message: string, metadata: Record<string, unknown>) {
+  const now = new Date().toISOString();
 
-  const child = spawn('sh', ['-c', cmd], {
+  db.update(tasks).set({
+    status: 'todo',
+    dispatchedAt: null,
+    updatedAt: now
+  }).where(eq(tasks.id, task.id)).run();
+
+  const logEntry = {
+    id: uuidv4(),
+    type: 'task_updated' as const,
+    actor: 'system',
+    message,
+    taskId: task.id,
+    metadata: JSON.stringify(metadata),
+    createdAt: now
+  };
+  db.insert(activityLog).values(logEntry).run();
+  broadcastToClients({ event: 'task_updated', task: { ...task, status: 'todo' }, log: logEntry });
+}
+
+function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSettings, provider: RuntimeProvider, db: Db) {
+  const prompt = buildPrompt(task, agent, db);
+  let spawnPlan;
+
+  try {
+    const adapter = getRuntimeAdapter(provider);
+    spawnPlan = adapter.buildSpawnPlan({ task, agent, prompt, settings: settingsMap });
+  } catch (err) {
+    _dispatching.delete(task.id);
+    const message = err instanceof Error ? err.message : 'Unknown runtime adapter error';
+    console.error(`[dispatcher] Failed to build spawn plan for "${task.title}": ${message}`);
+    revertDispatch(task, db, `Task "${task.title}" dispatch failed before spawn`, { provider, error: message });
+    return;
+  }
+
+  if (!spawnPlan) {
+    _dispatching.delete(task.id);
+    console.log(`[dispatcher] Skipping "${task.title}" — runtime adapter returned no spawn plan`);
+    revertDispatch(task, db, `Task "${task.title}" skipped because runtime is manual`, { provider });
+    return;
+  }
+
+  const child = spawn(spawnPlan.command, spawnPlan.args, {
     stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true
+    detached: true,
+    cwd: spawnPlan.cwd,
+    env: { ...process.env, ...spawnPlan.env }
   });
 
   child.unref();
+
+  child.on('error', (err) => {
+    _dispatching.delete(task.id);
+    console.error(`[dispatcher] Spawn error for "${task.title}" via ${provider}: ${err.message}`);
+    revertDispatch(task, db, `Task "${task.title}" dispatch failed via ${provider}, reverted to todo`, {
+      provider,
+      command: spawnPlan.displayCommand,
+      error: err.message
+    });
+  });
 
   child.on('close', (code) => {
     _dispatching.delete(task.id);
 
     if (code === 0) {
-      console.log(`[dispatcher] Success: "${task.title}"`);
+      console.log(`[dispatcher] Success: "${task.title}" via ${provider}`);
     } else {
-      console.error(`[dispatcher] Failed: "${task.title}" (code ${code})`);
-      const now = new Date().toISOString();
-
-      // Revert to todo on failure
-      db.update(tasks).set({
-        status: 'todo',
-        dispatchedAt: null,
-        updatedAt: now
-      }).where(eq(tasks.id, task.id)).run();
-
-      // Broadcast the revert
-      const logEntry = {
-        id: uuidv4(),
-        type: 'task_updated' as const,
-        actor: 'system',
-        message: `Task "${task.title}" dispatch failed, reverted to todo`,
-        taskId: task.id,
-        metadata: JSON.stringify({ exitCode: code }),
-        createdAt: now
-      };
-      db.insert(activityLog).values(logEntry).run();
-      broadcastToClients({ event: 'task_updated', task: { ...task, status: 'todo' }, log: logEntry });
+      console.error(`[dispatcher] Failed: "${task.title}" via ${provider} (code ${code})`);
+      revertDispatch(task, db, `Task "${task.title}" dispatch failed via ${provider}, reverted to todo`, {
+        provider,
+        command: spawnPlan.displayCommand,
+        exitCode: code
+      });
     }
   });
 }
@@ -136,7 +182,7 @@ function getDispatchPromptTemplate(db: Db): string {
   return row?.value || DEFAULT_DISPATCH_PROMPT;
 }
 
-function buildPrompt(task: TaskRow, agent: Record<string, unknown>, db: Db): string {
+function buildPrompt(task: TaskRow, agent: RuntimeAgent, db: Db): string {
   const rawSpecialties = agent.specialties;
   const parsedSpecialties = Array.isArray(rawSpecialties)
     ? rawSpecialties

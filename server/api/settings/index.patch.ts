@@ -7,6 +7,11 @@ const ALLOWED_KEYS = [
   'gateway_token',
   'workspace_path',
   'main_session_id',
+  'openclaw_main_session_id',
+  'default_runtime_provider',
+  'hermes_default_profile',
+  'hermes_default_model',
+  'hermes_worktree_mode',
   'dispatch_prompt_template'
 ];
 

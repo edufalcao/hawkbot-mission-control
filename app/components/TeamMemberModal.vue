@@ -82,6 +82,42 @@
           />
         </UFormField>
 
+        <div class="border border-gray-700 rounded-lg p-4 space-y-4">
+          <p class="text-sm font-semibold text-white">
+            Runtime
+          </p>
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Provider">
+              <USelect
+                v-model="form.runtimeProvider"
+                :items="runtimeProviderOptions"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Profile">
+              <UInput
+                v-model="form.runtimeProfile"
+                placeholder="Hermes profile (optional)"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Command override">
+              <UInput
+                v-model="form.runtimeCommand"
+                placeholder="hermes or openclaw"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Working directory">
+              <UInput
+                v-model="form.runtimeWorkdir"
+                placeholder="/path/to/workdir"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
+        </div>
+
         <p
           v-if="error"
           class="text-xs text-red-400"
@@ -120,6 +156,10 @@ interface TeamMember {
   model: string | null,
   specialties: string[],
   description: string | null,
+  runtimeProvider?: 'openclaw' | 'hermes' | 'manual' | null,
+  runtimeProfile?: string | null,
+  runtimeCommand?: string | null,
+  runtimeWorkdir?: string | null,
   openclawAgentId?: string | null
 }
 
@@ -143,12 +183,22 @@ const form = reactive({
   role: '',
   model: '',
   description: '',
+  runtimeProvider: 'openclaw' as 'openclaw' | 'hermes' | 'manual',
+  runtimeProfile: '',
+  runtimeCommand: '',
+  runtimeWorkdir: '',
   openclawAgentId: ''
 });
 
 const memberTypeOptions = [
   { label: '🤖 Agent', value: 'agent' },
   { label: '👤 Human', value: 'human' }
+];
+
+const runtimeProviderOptions = [
+  { label: 'OpenClaw', value: 'openclaw' },
+  { label: 'Hermes', value: 'hermes' },
+  { label: 'Manual', value: 'manual' }
 ];
 
 watch(() => props.member, (m) => {
@@ -159,6 +209,10 @@ watch(() => props.member, (m) => {
     form.role = m.role;
     form.model = m.model || '';
     form.description = m.description || '';
+    form.runtimeProvider = m.runtimeProvider || (m.memberType === 'human' ? 'manual' : 'openclaw');
+    form.runtimeProfile = m.runtimeProfile || '';
+    form.runtimeCommand = m.runtimeCommand || '';
+    form.runtimeWorkdir = m.runtimeWorkdir || '';
     form.openclawAgentId = m.openclawAgentId || '';
     specialtiesInput.value = (m.specialties || []).join(', ');
   } else {
@@ -206,6 +260,10 @@ function resetForm() {
   form.role = '';
   form.model = '';
   form.description = '';
+  form.runtimeProvider = 'openclaw';
+  form.runtimeProfile = '';
+  form.runtimeCommand = '';
+  form.runtimeWorkdir = '';
   form.openclawAgentId = '';
   specialtiesInput.value = '';
   error.value = '';

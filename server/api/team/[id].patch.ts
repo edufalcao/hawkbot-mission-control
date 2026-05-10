@@ -4,6 +4,20 @@ import { eq, and, ne } from 'drizzle-orm';
 import { broadcastToClients } from '../../utils/gateway';
 import { v4 as uuidv4 } from 'uuid';
 
+const RUNTIME_PROVIDERS = ['openclaw', 'hermes', 'manual'] as const;
+type RuntimeProvider = typeof RUNTIME_PROVIDERS[number];
+
+function normalizeRuntimeProvider(value: unknown): RuntimeProvider {
+  if (typeof value !== 'string' || !RUNTIME_PROVIDERS.includes(value as RuntimeProvider)) {
+    throw createError({ statusCode: 400, message: 'runtimeProvider must be "openclaw", "hermes", or "manual"' });
+  }
+  return value as RuntimeProvider;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
 export default defineEventHandler(async (event) => {
   const db = useDb();
   const id = getRouterParam(event, 'id')!;
@@ -44,6 +58,10 @@ export default defineEventHandler(async (event) => {
   if (body.specialties !== undefined) updates.specialties = JSON.stringify(body.specialties);
   if (body.description !== undefined) updates.description = body.description;
   if (body.status !== undefined) updates.status = body.status;
+  if (body.runtimeProvider !== undefined) updates.runtimeProvider = normalizeRuntimeProvider(body.runtimeProvider);
+  if (body.runtimeProfile !== undefined) updates.runtimeProfile = optionalString(body.runtimeProfile);
+  if (body.runtimeCommand !== undefined) updates.runtimeCommand = optionalString(body.runtimeCommand);
+  if (body.runtimeWorkdir !== undefined) updates.runtimeWorkdir = optionalString(body.runtimeWorkdir);
   if (body.openclawAgentId !== undefined) updates.openclawAgentId = body.openclawAgentId;
   if (body.agentDir !== undefined) updates.agentDir = body.agentDir;
 

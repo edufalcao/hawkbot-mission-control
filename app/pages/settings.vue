@@ -91,6 +91,68 @@
         </div>
       </section>
 
+      <!-- Runtime Providers Section -->
+      <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span class="i-lucide-bot w-5 h-5" />
+          Runtime Providers
+        </h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Default Runtime Provider</label>
+            <USelect
+              v-model="form.default_runtime_provider"
+              :items="runtimeProviderOptions"
+              size="lg"
+              class="w-full"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Per-agent runtime settings override this default.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Profile</label>
+              <UInput
+                v-model="form.hermes_default_profile"
+                placeholder="default, coding, research..."
+                size="lg"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Model</label>
+              <UInput
+                v-model="form.hermes_default_model"
+                placeholder="provider/model override"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Worktree Mode</label>
+              <USelect
+                v-model="form.hermes_worktree_mode"
+                :items="booleanOptions"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">OpenClaw Main Session ID</label>
+              <UInput
+                v-model="form.openclaw_main_session_id"
+                placeholder="OpenClaw session ID"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Dispatch Section -->
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -174,8 +236,24 @@ const form = reactive({
   gateway_token: '',
   workspace_path: '',
   main_session_id: '',
+  openclaw_main_session_id: '',
+  default_runtime_provider: 'openclaw',
+  hermes_default_profile: '',
+  hermes_default_model: '',
+  hermes_worktree_mode: 'false',
   dispatch_prompt_template: ''
 });
+
+const runtimeProviderOptions = [
+  { label: 'OpenClaw', value: 'openclaw' },
+  { label: 'Hermes', value: 'hermes' },
+  { label: 'Manual', value: 'manual' }
+];
+
+const booleanOptions = [
+  { label: 'Disabled', value: 'false' },
+  { label: 'Enabled', value: 'true' }
+];
 
 const templateVars = [
   '{{agent_emoji}}',
@@ -197,6 +275,11 @@ watch(data, (val) => {
     form.gateway_token = val.gateway_token || '';
     form.workspace_path = val.workspace_path || '';
     form.main_session_id = val.main_session_id || '';
+    form.openclaw_main_session_id = val.openclaw_main_session_id || val.main_session_id || '';
+    form.default_runtime_provider = val.default_runtime_provider || 'openclaw';
+    form.hermes_default_profile = val.hermes_default_profile || '';
+    form.hermes_default_model = val.hermes_default_model || '';
+    form.hermes_worktree_mode = val.hermes_worktree_mode || 'false';
     form.dispatch_prompt_template = val.dispatch_prompt_template || '';
   }
 }, { immediate: true });
@@ -207,6 +290,11 @@ const hasChanges = computed(() => {
     || form.gateway_token !== (data.value.gateway_token || '')
     || form.workspace_path !== (data.value.workspace_path || '')
     || form.main_session_id !== (data.value.main_session_id || '')
+    || form.openclaw_main_session_id !== (data.value.openclaw_main_session_id || data.value.main_session_id || '')
+    || form.default_runtime_provider !== (data.value.default_runtime_provider || 'openclaw')
+    || form.hermes_default_profile !== (data.value.hermes_default_profile || '')
+    || form.hermes_default_model !== (data.value.hermes_default_model || '')
+    || form.hermes_worktree_mode !== (data.value.hermes_worktree_mode || 'false')
     || form.dispatch_prompt_template !== (data.value.dispatch_prompt_template || '');
 });
 
@@ -216,6 +304,11 @@ function resetForm() {
     form.gateway_token = data.value.gateway_token || '';
     form.workspace_path = data.value.workspace_path || '';
     form.main_session_id = data.value.main_session_id || '';
+    form.openclaw_main_session_id = data.value.openclaw_main_session_id || data.value.main_session_id || '';
+    form.default_runtime_provider = data.value.default_runtime_provider || 'openclaw';
+    form.hermes_default_profile = data.value.hermes_default_profile || '';
+    form.hermes_default_model = data.value.hermes_default_model || '';
+    form.hermes_worktree_mode = data.value.hermes_worktree_mode || 'false';
     form.dispatch_prompt_template = data.value.dispatch_prompt_template || '';
   }
   saveMessage.value = '';
@@ -233,6 +326,11 @@ async function saveSettings() {
         gateway_token: form.gateway_token,
         workspace_path: form.workspace_path,
         main_session_id: form.main_session_id,
+        openclaw_main_session_id: form.openclaw_main_session_id,
+        default_runtime_provider: form.default_runtime_provider,
+        hermes_default_profile: form.hermes_default_profile,
+        hermes_default_model: form.hermes_default_model,
+        hermes_worktree_mode: form.hermes_worktree_mode,
         ...(form.dispatch_prompt_template ? { dispatch_prompt_template: form.dispatch_prompt_template } : {})
       }
     });

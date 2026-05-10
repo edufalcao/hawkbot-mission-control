@@ -85,6 +85,13 @@
         <!-- Specialties -->
         <div class="flex flex-wrap gap-1 mb-3">
           <UBadge
+            :color="runtimeBadgeColor(member.runtimeProvider)"
+            size="xs"
+            variant="soft"
+          >
+            {{ runtimeLabel(member.runtimeProvider) }}
+          </UBadge>
+          <UBadge
             v-for="spec in member.specialties"
             :key="spec"
             color="neutral"
@@ -157,6 +164,10 @@ interface TeamMember {
   status: string,
   currentTaskId: string | null,
   lastUsed: string | null,
+  runtimeProvider?: 'openclaw' | 'hermes' | 'manual' | null,
+  runtimeProfile?: string | null,
+  runtimeCommand?: string | null,
+  runtimeWorkdir?: string | null,
   openclawAgentId?: string | null,
   usageCount: number | null,
   successCount: number | null,
@@ -213,6 +224,18 @@ async function confirmDelete() {
 
 function onMemberSaved() {
   queryClient.invalidateQueries({ queryKey: ['team'] });
+}
+
+function runtimeLabel(provider?: string | null) {
+  if (provider === 'hermes') return 'Hermes';
+  if (provider === 'manual') return 'Manual';
+  return 'OpenClaw';
+}
+
+function runtimeBadgeColor(provider?: string | null) {
+  if (provider === 'hermes') return 'primary';
+  if (provider === 'manual') return 'neutral';
+  return 'info';
 }
 
 function getCardActions(member: TeamMember) {
