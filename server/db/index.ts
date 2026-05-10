@@ -61,9 +61,9 @@ function runMigrations(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS team_members (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      member_type TEXT NOT NULL DEFAULT 'agent',
       emoji TEXT DEFAULT '🤖',
       role TEXT NOT NULL,
-      model TEXT DEFAULT 'sonnet',
       specialties TEXT DEFAULT '[]',
       description TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT 'idle',

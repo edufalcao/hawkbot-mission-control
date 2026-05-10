@@ -110,25 +110,14 @@
               Per-agent runtime settings override this default.
             </p>
           </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Profile</label>
-              <UInput
-                v-model="form.hermes_default_profile"
-                placeholder="default, coding, research..."
-                size="lg"
-                class="w-full"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Model</label>
-              <UInput
-                v-model="form.hermes_default_model"
-                placeholder="provider/model override"
-                size="lg"
-                class="w-full"
-              />
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Profile</label>
+            <UInput
+              v-model="form.hermes_default_profile"
+              placeholder="default, coding, research..."
+              size="lg"
+              class="w-full"
+            />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -239,7 +228,6 @@ const form = reactive({
   openclaw_main_session_id: '',
   default_runtime_provider: 'openclaw',
   hermes_default_profile: '',
-  hermes_default_model: '',
   hermes_worktree_mode: 'false',
   dispatch_prompt_template: ''
 });
@@ -278,7 +266,6 @@ watch(data, (val) => {
     form.openclaw_main_session_id = val.openclaw_main_session_id || val.main_session_id || '';
     form.default_runtime_provider = val.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = val.hermes_default_profile || '';
-    form.hermes_default_model = val.hermes_default_model || '';
     form.hermes_worktree_mode = val.hermes_worktree_mode || 'false';
     form.dispatch_prompt_template = val.dispatch_prompt_template || '';
   }
@@ -293,7 +280,6 @@ const hasChanges = computed(() => {
     || form.openclaw_main_session_id !== (data.value.openclaw_main_session_id || data.value.main_session_id || '')
     || form.default_runtime_provider !== (data.value.default_runtime_provider || 'openclaw')
     || form.hermes_default_profile !== (data.value.hermes_default_profile || '')
-    || form.hermes_default_model !== (data.value.hermes_default_model || '')
     || form.hermes_worktree_mode !== (data.value.hermes_worktree_mode || 'false')
     || form.dispatch_prompt_template !== (data.value.dispatch_prompt_template || '');
 });
@@ -307,7 +293,6 @@ function resetForm() {
     form.openclaw_main_session_id = data.value.openclaw_main_session_id || data.value.main_session_id || '';
     form.default_runtime_provider = data.value.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = data.value.hermes_default_profile || '';
-    form.hermes_default_model = data.value.hermes_default_model || '';
     form.hermes_worktree_mode = data.value.hermes_worktree_mode || 'false';
     form.dispatch_prompt_template = data.value.dispatch_prompt_template || '';
   }
@@ -329,7 +314,6 @@ async function saveSettings() {
         openclaw_main_session_id: form.openclaw_main_session_id,
         default_runtime_provider: form.default_runtime_provider,
         hermes_default_profile: form.hermes_default_profile,
-        hermes_default_model: form.hermes_default_model,
         hermes_worktree_mode: form.hermes_worktree_mode,
         ...(form.dispatch_prompt_template ? { dispatch_prompt_template: form.dispatch_prompt_template } : {})
       }

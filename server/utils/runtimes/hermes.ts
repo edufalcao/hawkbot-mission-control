@@ -5,10 +5,8 @@ export const hermesRuntimeAdapter: AgentRuntimeAdapter = {
   buildSpawnPlan({ agent, prompt, settings }) {
     const args = ['chat'];
     const profile = agent.runtimeProfile || settings.hermes_default_profile;
-    const model = settings.hermes_default_model;
 
     if (profile) args.push('--profile', profile);
-    if (model) args.push('--model', model);
     if (settings.hermes_worktree_mode === 'true') args.push('--worktree');
 
     args.push('-q', prompt);

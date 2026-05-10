@@ -44,14 +44,6 @@
               class="w-full"
             />
           </UFormField>
-
-          <UFormField label="Model">
-            <UInput
-              v-model="form.model"
-              placeholder="sonnet"
-              class="w-full"
-            />
-          </UFormField>
         </div>
 
         <UFormField label="Description">
@@ -153,7 +145,6 @@ interface TeamMember {
   memberType: string,
   emoji: string | null,
   role: string,
-  model: string | null,
   specialties: string[],
   description: string | null,
   runtimeProvider?: 'openclaw' | 'hermes' | 'manual' | null,
@@ -181,7 +172,6 @@ const form = reactive({
   memberType: 'agent',
   emoji: '🤖',
   role: '',
-  model: '',
   description: '',
   runtimeProvider: 'openclaw' as 'openclaw' | 'hermes' | 'manual',
   runtimeProfile: '',
@@ -207,7 +197,6 @@ watch(() => props.member, (m) => {
     form.memberType = m.memberType;
     form.emoji = m.emoji || '🤖';
     form.role = m.role;
-    form.model = m.model || '';
     form.description = m.description || '';
     form.runtimeProvider = m.runtimeProvider || (m.memberType === 'human' ? 'manual' : 'openclaw');
     form.runtimeProfile = m.runtimeProfile || '';
@@ -258,7 +247,6 @@ function resetForm() {
   form.memberType = 'agent';
   form.emoji = '🤖';
   form.role = '';
-  form.model = '';
   form.description = '';
   form.runtimeProvider = 'openclaw';
   form.runtimeProfile = '';

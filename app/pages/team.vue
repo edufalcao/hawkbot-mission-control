@@ -104,7 +104,7 @@
 
         <!-- Stats -->
         <div class="flex gap-4 text-xs text-gray-500 border-t border-gray-700 pt-3">
-          <span>Model: <span class="text-gray-300">{{ member.model }}</span></span>
+          <span>Runtime: <span class="text-gray-300">{{ runtimeLabel(member.runtimeProvider) }}</span></span>
           <span>Uses: <span class="text-gray-300">{{ member.usageCount }}</span></span>
         </div>
       </div>
@@ -158,7 +158,6 @@ interface TeamMember {
   memberType: string,
   emoji: string | null,
   role: string,
-  model: string | null,
   specialties: string[],
   description: string | null,
   status: string,

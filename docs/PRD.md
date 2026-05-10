@@ -357,13 +357,13 @@ Scans:
 
 **Status: Built (Phase 1) — static display, hardcoded seed**
 
-Displays the agent roster with status, model, specialties, and usage stats.
+Displays the agent roster with status, runtime, specialties, and usage stats.
 
 #### Current Implementation
 
 - Team members are seeded from a hardcoded array on first startup
 - Read-only display in a card grid
-- Shows: emoji, name, role, model, specialties, status, usage count
+- Shows: emoji, name, role, runtime, specialties, status, usage count
 - Status indicator (green pulse = busy, blue = active, gray = idle)
 
 #### Required Changes for Distribution
@@ -384,7 +384,6 @@ The entire team management system must be redesigned:
 | `memberType` | enum | User | `human` or `agent` |
 | `emoji` | string | User | Avatar emoji |
 | `role` | string | User | Freeform role label |
-| `model` | string | OpenClaw config | LLM model identifier |
 | `specialties` | string[] | User | Tags describing capabilities |
 | `description` | string | User | Freeform description |
 | `status` | enum | Live query | `active`, `idle`, `busy` |
@@ -522,14 +521,12 @@ OpenClaw supports multiple agents via the `agents.list` configuration in `~/.ope
     "list": [
       {
         "name": "dev",
-        "model": "anthropic/claude-sonnet-4-6",
-        "agentDir": "~/.openclaw/agents/dev",
+                "agentDir": "~/.openclaw/agents/dev",
         "tools": ["exec", "read", "write", "edit", "web_search"]
       },
       {
         "name": "research",
-        "model": "anthropic/claude-sonnet-4-6",
-        "agentDir": "~/.openclaw/agents/research",
+                "agentDir": "~/.openclaw/agents/research",
         "tools": ["web_search", "web_fetch", "read", "write"]
       }
     ]
@@ -539,7 +536,6 @@ OpenClaw supports multiple agents via the `agents.list` configuration in `~/.ope
 
 Each agent has:
 - **Isolated workspace** — Its own `agentDir` with separate SOUL.md, MEMORY.md, skills
-- **Own model** — Can use different LLMs for different roles
 - **Own tools** — Tool access can be restricted per agent
 - **Session isolation** — Runs in its own session context
 
@@ -653,7 +649,6 @@ for (const agent of agents) {
     memberType: 'agent',
     emoji: inferEmoji(agent.name), // 💻 for "dev", 🔍 for "research", etc.
     role: inferRole(agent.name),
-    model: agent.model,
     specialties: JSON.stringify(agent.tools || []),
     description: `Imported from openclaw.json`,
     openclawAgentId: agent.name,
@@ -670,7 +665,6 @@ db.insert(teamMembers).values({
   memberType: 'human',
   emoji: '👤',
   role: 'owner',
-  model: null,
   specialties: JSON.stringify(['management', 'review']),
   description: 'Project owner',
   status: 'active',
@@ -681,7 +675,7 @@ db.insert(teamMembers).values({
 #### Phase 2: UI-Driven Agent Creation
 
 A form in the Team page lets users:
-1. Define a new agent (name, role, model, specialties)
+1. Define a new agent (name, role, runtime, specialties)
 2. Mission Control generates the `agents.list` entry
 3. Optionally writes back to `openclaw.json` (with user confirmation)
 4. Creates the agent's workspace directory with template SOUL.md
@@ -778,7 +772,7 @@ const sessionId = uuidv5(agent.openclawAgentId, MISSION_CONTROL_NAMESPACE);
 │ memberType   │       │ description  │
 │ emoji        │       │ status       │
 │ role         │       │ assignee ──────► team_members.id
-│ model        │       │ priority     │
+│ runtime      │       │ priority     │
 │ specialties  │       │ tags []      │
 │ description  │       │ sessionKey   │
 │ status       │       │ dispatchedAt │
@@ -900,7 +894,7 @@ Used for:
 
 | Method | Path | Purpose | Request Body |
 |--------|------|---------|-------------|
-| POST | `/api/team` | Create member | `{ name, memberType, emoji, role, model, specialties, description }` |
+| POST | `/api/team` | Create member | `{ name, memberType, emoji, role, runtime, specialties, description }` |
 | PATCH | `/api/team/:id` | Update member | Partial `TeamMember` fields |
 | DELETE | `/api/team/:id` | Delete member | — |
 
@@ -999,7 +993,7 @@ Used for:
 **Header:** "Team" title + member count + busy count
 
 **Body:** Responsive card grid (1/2/3 columns)
-- Each card: emoji avatar (large), name, role, status dot + label, description, specialty badges, model + usage stats footer
+- Each card: emoji avatar (large), name, role, status dot + label, description, specialty badges, runtime + usage stats footer
 - Status: green pulse = busy, blue = active, gray = idle
 
 **Phase 2 additions:**
@@ -1386,7 +1380,7 @@ Mission Control explicitly does **NOT** aim to be:
   - Re-seed only if team table is empty; never overwrite existing records
 
 - [x] **P0-3**: Add Team CRUD API endpoints
-  - `server/api/team/index.post.ts`: create team member (name, type, role, model, specialties, agentId)
+  - `server/api/team/index.post.ts`: create team member (name, type, role, runtime, specialties, agentId)
   - `server/api/team/[id].patch.ts`: update team member fields
   - `server/api/team/[id].delete.ts`: soft-delete (set `active = false`)
   - Validate: `type` must be `human | agent`; `agentId` must be unique if provided
@@ -1457,7 +1451,7 @@ Mission Control explicitly does **NOT** aim to be:
 
 - [ ] **P3-2**: Agent templates library
   - `server/data/agent-templates.ts`: array of template definitions (Fullstack Dev, System Architect, Research, Ops, Writer)
-  - Each template: `{ id, name, role, model, specialties, systemPromptFile, suggestedTools }`
+  - Each template: `{ id, name, role, runtime, specialties, systemPromptFile, suggestedTools }`
   - `server/api/agent-templates/index.get.ts`: return available templates
   - `app/pages/team/index.vue`: "Add from template" button in Team UI → opens template picker modal
 

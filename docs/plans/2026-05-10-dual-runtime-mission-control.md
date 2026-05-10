@@ -80,7 +80,6 @@ Add these settings keys:
 
 - `default_runtime_provider`: default `hermes` eventually, but start as `openclaw` to avoid surprising existing behavior.
 - `hermes_default_profile`: optional Hermes profile name.
-- `hermes_default_model`: optional model override.
 - `hermes_worktree_mode`: string boolean, default `false`.
 - `openclaw_main_session_id`: new explicit name for OpenClaw session ID.
 
@@ -302,7 +301,6 @@ In `server/api/settings/index.patch.ts`, extend `ALLOWED_KEYS`:
 ```ts
   'default_runtime_provider',
   'hermes_default_profile',
-  'hermes_default_model',
   'hermes_worktree_mode',
   'openclaw_main_session_id'
 ```
@@ -316,7 +314,6 @@ In `app/pages/settings.vue`, extend `form`:
 ```ts
   default_runtime_provider: 'openclaw',
   hermes_default_profile: '',
-  hermes_default_model: '',
   hermes_worktree_mode: 'false',
   openclaw_main_session_id: ''
 ```
@@ -328,7 +325,6 @@ In the `watch(data, ...)` and `resetForm()` blocks, map defaults:
 ```ts
 form.default_runtime_provider = val.default_runtime_provider || 'openclaw';
 form.hermes_default_profile = val.hermes_default_profile || '';
-form.hermes_default_model = val.hermes_default_model || '';
 form.hermes_worktree_mode = val.hermes_worktree_mode || 'false';
 form.openclaw_main_session_id = val.openclaw_main_session_id || val.main_session_id || '';
 ```
@@ -340,7 +336,6 @@ Add these keys to the PATCH body:
 ```ts
         default_runtime_provider: form.default_runtime_provider,
         hermes_default_profile: form.hermes_default_profile,
-        hermes_default_model: form.hermes_default_model,
         hermes_worktree_mode: form.hermes_worktree_mode,
         openclaw_main_session_id: form.openclaw_main_session_id,
 ```
@@ -534,7 +529,6 @@ hermes chat -q "<prompt>"
 Optionally include:
 
 - `--profile <profile>` when `agent.runtimeProfile` or `settings.hermes_default_profile` is set.
-- `--model <model>` when `settings.hermes_default_model` is set.
 - `--worktree` when `settings.hermes_worktree_mode === 'true'`.
 
 **Step 2: Create adapter**
@@ -552,8 +546,6 @@ export const hermesRuntimeAdapter: AgentRuntimeAdapter = {
     const profile = agent.runtimeProfile || settings.hermes_default_profile;
     if (profile) args.push('--profile', profile);
 
-    const model = settings.hermes_default_model;
-    if (model) args.push('--model', model);
 
     if (settings.hermes_worktree_mode === 'true') args.push('--worktree');
 

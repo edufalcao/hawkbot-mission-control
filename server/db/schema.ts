@@ -38,7 +38,6 @@ export const teamMembers = sqliteTable('team_members', {
   memberType: text('member_type', { enum: ['human', 'agent'] }).notNull().default('agent'),
   emoji: text('emoji').default('🤖'),
   role: text('role').notNull(),
-  model: text('model').default('sonnet'),
   specialties: text('specialties').default('[]'), // JSON array
   description: text('description').default(''),
   status: text('status', { enum: ['active', 'idle', 'busy'] }).notNull().default('idle'),

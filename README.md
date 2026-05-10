@@ -26,7 +26,7 @@ Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 - **Tasks Board** — Kanban with 4 columns: To Do, In Progress, Review, Done. Assignee per agent or user.
 - **Calendar** — Visualization of all cron jobs from the OpenClaw Gateway.
 - **Memory** — Visual browser for all memory files in the workspace (`.md`), with search.
-- **Team** — Agent roster with real-time status, model, specialties, and stats.
+- **Team** — Agent roster with real-time status, runtime, specialties, and stats.
 - **Office** — Gamified view of agents working at their desktops.
 - **Content Pipeline** — *(Phase 2)* Content creation pipeline: Idea → Script → Thumbnail → Published.
 - **Live Feed** — Real-time event stream via SSE connected to the Gateway.

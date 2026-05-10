@@ -24,7 +24,7 @@
   - Follows same patterns as task CRUD endpoints (uuid, timestamps, broadcastToClients)
   - Lint + typecheck pass
 [x] P0-4: Add Team management UI
-  - app/components/TeamMemberModal.vue: create/edit modal with name, type, emoji, role, model, description, specialties, openclawAgentId fields
+  - app/components/TeamMemberModal.vue: create/edit modal with name, type, emoji, role, runtime, description, specialties, openclawAgentId fields
   - app/pages/team.vue: upgraded from read-only display to full CRUD
   - "Add Member" button in header opens create modal
   - Hover dropdown menu on each card with Edit and Delete actions

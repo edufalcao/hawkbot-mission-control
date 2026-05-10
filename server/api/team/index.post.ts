@@ -49,7 +49,6 @@ export default defineEventHandler(async (event) => {
     memberType: body.memberType as 'human' | 'agent',
     emoji: body.emoji || (body.memberType === 'human' ? '👤' : '🤖'),
     role: body.role || (body.memberType === 'human' ? 'member' : 'assistant'),
-    model: body.model || null,
     specialties: JSON.stringify(body.specialties || []),
     description: body.description || '',
     status: 'idle' as const,

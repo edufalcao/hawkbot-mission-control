@@ -10,7 +10,6 @@ const ALLOWED_KEYS = [
   'openclaw_main_session_id',
   'default_runtime_provider',
   'hermes_default_profile',
-  'hermes_default_model',
   'hermes_worktree_mode',
   'dispatch_prompt_template'
 ];

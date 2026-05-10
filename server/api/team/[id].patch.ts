@@ -54,7 +54,6 @@ export default defineEventHandler(async (event) => {
   if (body.memberType !== undefined) updates.memberType = body.memberType;
   if (body.emoji !== undefined) updates.emoji = body.emoji;
   if (body.role !== undefined) updates.role = body.role;
-  if (body.model !== undefined) updates.model = body.model;
   if (body.specialties !== undefined) updates.specialties = JSON.stringify(body.specialties);
   if (body.description !== undefined) updates.description = body.description;
   if (body.status !== undefined) updates.status = body.status;

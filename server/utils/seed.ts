@@ -1,5 +1,6 @@
 import { useDb } from '../db';
 import { teamMembers } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -7,7 +8,6 @@ import { homedir, userInfo } from 'node:os';
 
 interface OpenClawAgent {
   name: string,
-  model?: string,
   agentDir?: string,
   tools?: string[]
 }
@@ -21,6 +21,23 @@ interface OpenClawConfig {
   }
 }
 
+type RuntimeProvider = 'openclaw' | 'hermes' | 'manual';
+
+interface SeedTeamMember {
+  name: string,
+  memberType: 'human' | 'agent',
+  emoji: string,
+  role: string,
+  specialties: string[],
+  description: string,
+  runtimeProvider: RuntimeProvider,
+  runtimeProfile: string | null,
+  runtimeCommand: string | null,
+  runtimeWorkdir: string | null,
+  openclawAgentId: string | null,
+  agentDir: string | null
+}
+
 const EMOJI_MAP: Record<string, string> = {
   dev: '💻',
   developer: '💻',
@@ -31,6 +48,7 @@ const EMOJI_MAP: Record<string, string> = {
   devops: '⚙️',
   writer: '✍️',
   content: '✍️',
+  hawkbot: '🦅',
   assistant: '🦅',
   default: '🤖'
 };
@@ -45,6 +63,7 @@ const ROLE_MAP: Record<string, string> = {
   devops: 'operator',
   writer: 'writer',
   content: 'writer',
+  hawkbot: 'assistant',
   assistant: 'assistant',
   default: 'agent'
 };
@@ -65,6 +84,14 @@ function inferRole(name: string): string {
   return ROLE_MAP.default!;
 }
 
+function openClawDisplayName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower === 'hawkbot' || lower === 'assistant' || lower.includes('hawkbot')) {
+    return 'HawkBot - OpenClaw';
+  }
+  return name;
+}
+
 function readOpenClawConfig(): OpenClawConfig | null {
   const configPath = resolve(homedir(), '.openclaw', 'openclaw.json');
   if (!existsSync(configPath)) {
@@ -81,78 +108,128 @@ function readOpenClawConfig(): OpenClawConfig | null {
   }
 }
 
+function buildHermesHawkBot(): SeedTeamMember {
+  return {
+    name: 'HawkBot - Hermes',
+    memberType: 'agent',
+    emoji: '🦅',
+    role: 'assistant',
+    specialties: ['orchestration', 'planning', 'automation'],
+    description: 'Hermes-powered HawkBot assistant using the default Hermes configuration',
+    runtimeProvider: 'hermes',
+    runtimeProfile: null,
+    runtimeCommand: null,
+    runtimeWorkdir: null,
+    openclawAgentId: null,
+    agentDir: null
+  };
+}
+
+function buildOwner(): SeedTeamMember {
+  const username = userInfo().username;
+  return {
+    name: username,
+    memberType: 'human',
+    emoji: '👤',
+    role: 'owner',
+    specialties: ['management', 'review'],
+    description: 'Project owner',
+    runtimeProvider: 'manual',
+    runtimeProfile: null,
+    runtimeCommand: null,
+    runtimeWorkdir: null,
+    openclawAgentId: null,
+    agentDir: null
+  };
+}
+
 function buildTeamFromConfig(config: OpenClawConfig) {
-  const members: Array<{
-    name: string,
-    memberType: 'human' | 'agent',
-    emoji: string,
-    role: string,
-    model: string | null,
-    specialties: string[],
-    description: string,
-    openclawAgentId: string | null,
-    agentDir: string | null
-  }> = [];
+  const members: SeedTeamMember[] = [];
 
   // Add agents from openclaw.json agents.list
   const agents = config.agents?.list || [];
   for (const agent of agents) {
+    const displayName = openClawDisplayName(agent.name);
     members.push({
-      name: agent.name,
+      name: displayName,
       memberType: 'agent',
-      emoji: inferEmoji(agent.name),
-      role: inferRole(agent.name),
-      model: agent.model || null,
+      emoji: inferEmoji(displayName),
+      role: inferRole(displayName),
       specialties: agent.tools || [],
-      description: `Imported from openclaw.json`,
+      description: 'Imported from openclaw.json',
+      runtimeProvider: 'openclaw',
+      runtimeProfile: null,
+      runtimeCommand: null,
+      runtimeWorkdir: null,
       openclawAgentId: agent.name,
       agentDir: agent.agentDir || null
     });
   }
 
-  // Add the current OS user as a human member
-  const username = userInfo().username;
-  members.push({
-    name: username,
-    memberType: 'human',
-    emoji: '👤',
-    role: 'owner',
-    model: null,
-    specialties: ['management', 'review'],
-    description: 'Project owner',
-    openclawAgentId: null,
-    agentDir: null
-  });
+  members.push(buildHermesHawkBot());
+  members.push(buildOwner());
 
   return members;
 }
 
 function buildFallbackTeam() {
-  const username = userInfo().username;
   return [
+    buildOwner(),
     {
-      name: username,
-      memberType: 'human' as const,
-      emoji: '👤',
-      role: 'owner',
-      model: null,
-      specialties: ['management', 'review'],
-      description: 'Project owner',
-      openclawAgentId: null,
+      name: 'HawkBot - OpenClaw',
+      memberType: 'agent' as const,
+      emoji: '🦅',
+      role: 'assistant',
+      specialties: ['general'],
+      description: 'OpenClaw-powered HawkBot assistant',
+      runtimeProvider: 'openclaw' as const,
+      runtimeProfile: null,
+      runtimeCommand: null,
+      runtimeWorkdir: null,
+      openclawAgentId: 'hawkbot',
       agentDir: null
     },
-    {
-      name: 'assistant',
-      memberType: 'agent' as const,
-      emoji: '🤖',
-      role: 'assistant',
-      model: 'sonnet',
-      specialties: ['general'],
-      description: 'Default assistant agent',
-      openclawAgentId: null,
-      agentDir: null
-    }
+    buildHermesHawkBot()
   ];
+}
+
+async function reconcileHawkBotTeam(db: ReturnType<typeof useDb>) {
+  const members = await db.select().from(teamMembers);
+  const now = new Date().toISOString();
+
+  const hasHermesHawkBot = members.some(member =>
+    member.name === 'HawkBot - Hermes'
+    || (member.runtimeProvider === 'hermes' && member.name.toLowerCase().includes('hawkbot'))
+  );
+
+  for (const member of members) {
+    const lowerName = member.name.toLowerCase();
+    const isLegacyHawkBot = lowerName === 'hawkbot'
+      || lowerName === 'assistant'
+      || (lowerName.includes('hawkbot') && member.runtimeProvider !== 'hermes' && member.name !== 'HawkBot - OpenClaw');
+
+    if (isLegacyHawkBot) {
+      await db.update(teamMembers).set({
+        name: 'HawkBot - OpenClaw',
+        emoji: '🦅',
+        role: 'assistant',
+        runtimeProvider: 'openclaw',
+        openclawAgentId: member.openclawAgentId || 'hawkbot'
+      }).where(eq(teamMembers.id, member.id));
+    }
+  }
+
+  if (!hasHermesHawkBot) {
+    const hermesHawkBot = buildHermesHawkBot();
+    await db.insert(teamMembers).values({
+      id: uuidv4(),
+      ...hermesHawkBot,
+      specialties: JSON.stringify(hermesHawkBot.specialties),
+      status: 'idle',
+      createdAt: now
+    });
+    console.log('[seed] Added HawkBot - Hermes to existing team');
+  }
 }
 
 export async function seedDefaultTeam() {
@@ -161,7 +238,8 @@ export async function seedDefaultTeam() {
   // Only seed if the team table is completely empty
   const existing = await db.select().from(teamMembers).limit(1);
   if (existing.length > 0) {
-    console.log('[seed] Team table already has members, skipping seed');
+    await reconcileHawkBotTeam(db);
+    console.log('[seed] Team table already has members, reconciled HawkBot agents');
     return;
   }
 
@@ -171,9 +249,9 @@ export async function seedDefaultTeam() {
 
   if (config) {
     const agentCount = config.agents?.list?.length || 0;
-    console.log(`[seed] Importing ${agentCount} agent(s) from openclaw.json`);
+    console.log(`[seed] Importing ${agentCount} OpenClaw agent(s) and adding HawkBot - Hermes`);
   } else {
-    console.log('[seed] Using fallback team (1 human owner + 1 assistant agent)');
+    console.log('[seed] Using fallback team (owner + HawkBot OpenClaw + HawkBot Hermes)');
   }
 
   const now = new Date().toISOString();
