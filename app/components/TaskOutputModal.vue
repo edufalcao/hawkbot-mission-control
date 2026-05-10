@@ -127,7 +127,18 @@
           </section>
         </div>
 
-        <div class="flex justify-end pt-2">
+        <div class="flex justify-end gap-2 pt-2">
+          <UButton
+            v-if="detail"
+            icon="i-lucide-rotate-ccw"
+            color="warning"
+            variant="soft"
+            :loading="retrying"
+            :disabled="!retryDecision.retryable"
+            @click="retryDispatch"
+          >
+            Retry Dispatch
+          </UButton>
           <UButton
             color="neutral"
             variant="ghost"
@@ -136,6 +147,12 @@
             Close
           </UButton>
         </div>
+        <p
+          v-if="detail && !retryDecision.retryable"
+          class="text-xs text-gray-500 text-right"
+        >
+          {{ retryDecision.reason }}
+        </p>
       </div>
     </template>
   </UModal>
@@ -167,6 +184,7 @@ interface TaskOutputDetail {
     id: string,
     title: string,
     description?: string,
+    assignee: string,
     status: string,
     priority: string,
     tags: string[]
@@ -175,13 +193,26 @@ interface TaskOutputDetail {
   logs: TaskOutputLog[]
 }
 
+interface TeamMember {
+  id: string,
+  name: string,
+  memberType: string,
+  runtimeProvider?: string | null
+}
+
 const props = defineProps<{
-  taskId: string | null
+  taskId: string | null,
+  teamMembers: TeamMember[]
+}>();
+
+const emit = defineEmits<{
+  retried: []
 }>();
 
 const open = defineModel<boolean>();
 const detail = ref<TaskOutputDetail | null>(null);
 const loading = ref(false);
+const retrying = ref(false);
 const error = ref('');
 
 watch([open, () => props.taskId], async ([isOpen, taskId]) => {
@@ -197,6 +228,38 @@ watch([open, () => props.taskId], async ([isOpen, taskId]) => {
     loading.value = false;
   }
 }, { immediate: true });
+
+const retryDecision = computed(() => {
+  const task = detail.value?.task;
+  if (!task) return { retryable: false, reason: 'Task details are loading.' };
+
+  const assignee = props.teamMembers.find(member => member.id === task.assignee);
+  if (!assignee || assignee.memberType !== 'agent') {
+    return { retryable: false, reason: 'Only agent-assigned tasks can be retried.' };
+  }
+  if (assignee.runtimeProvider === 'manual') {
+    return { retryable: false, reason: 'Manual-runtime tasks cannot be retried.' };
+  }
+  if (task.status === 'in_progress') {
+    return { retryable: false, reason: 'Tasks in progress cannot be retried.' };
+  }
+  return { retryable: true, reason: '' };
+});
+
+async function retryDispatch() {
+  if (!detail.value || !retryDecision.value.retryable) return;
+  retrying.value = true;
+  error.value = '';
+  try {
+    detail.value.task = await $fetch<TaskOutputDetail['task']>(`/api/tasks/${detail.value.task.id}/retry-dispatch`, { method: 'POST' });
+    emit('retried');
+  } catch (err: unknown) {
+    const fetchError = err as { data?: { message?: string } };
+    error.value = fetchError?.data?.message || 'Failed to retry dispatch.';
+  } finally {
+    retrying.value = false;
+  }
+}
 
 function formatDuration(durationMs: number | null) {
   if (durationMs == null) return '—';

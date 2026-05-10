@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
       taskId: updated.id,
       assigneeName: actorName,
       provider: member?.runtimeProvider || 'manual'
-    }, settingsMap);
+    }, settingsMap, db);
   }
 
   // Dispatch if task was moved (back) to todo

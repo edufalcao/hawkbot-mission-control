@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildNotificationActivityMetadata,
   buildTaskNotificationMessage,
   buildTaskNotificationPrompt,
   shouldNotifyTaskEvent
@@ -60,5 +61,25 @@ describe('task notifications', () => {
     expect(prompt).toContain('Send this exact message to Eduardo on Telegram');
     expect(prompt).toContain('Hello **Eduardo**');
     expect(prompt).toContain('Do not add extra commentary');
+  });
+
+  it('builds notification activity metadata without storing the message body', () => {
+    const metadata = buildNotificationActivityMetadata({
+      event: 'failure',
+      taskId: 'task-456',
+      provider: 'hermes',
+      command: 'hermes',
+      profile: 'default'
+    });
+
+    expect(metadata).toEqual({
+      notification: 'telegram',
+      event: 'failure',
+      taskId: 'task-456',
+      provider: 'hermes',
+      command: 'hermes',
+      profileConfigured: true
+    });
+    expect(JSON.stringify(metadata)).not.toContain('Task dispatch failed');
   });
 });

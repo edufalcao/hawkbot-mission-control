@@ -6,7 +6,7 @@
           Activity
         </h1>
         <p class="text-gray-400 text-sm mt-0.5">
-          {{ logs.length }} recent runtime, task, and system events
+          {{ logs.length }} filtered runtime, task, and system events
         </p>
       </div>
       <UButton
@@ -19,6 +19,42 @@
         Refresh
       </UButton>
     </div>
+
+    <section class="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <USelect
+          v-model="filters.type"
+          :items="eventTypeOptions"
+          placeholder="Event type"
+        />
+        <UInput
+          v-model="filters.actor"
+          icon="i-lucide-user"
+          placeholder="Actor contains"
+        />
+        <UInput
+          v-model="filters.taskId"
+          icon="i-lucide-list-checks"
+          placeholder="Task ID"
+        />
+        <USelect
+          v-model="filters.limit"
+          :items="limitOptions"
+          placeholder="Limit"
+        />
+      </div>
+      <div class="flex justify-end mt-3">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-x"
+          @click="clearFilters"
+        >
+          Clear filters
+        </UButton>
+      </div>
+    </section>
 
     <div
       v-if="isLoading"
@@ -56,6 +92,10 @@
                   {{ eventLabel(log.type) }}
                 </UBadge>
                 <span class="text-xs text-gray-500">{{ log.actor }}</span>
+                <span
+                  v-if="log.taskId"
+                  class="text-xs text-gray-600 font-mono"
+                >{{ log.taskId }}</span>
               </div>
               <p class="text-sm text-white">
                 {{ log.message }}
@@ -90,7 +130,7 @@
         name="i-lucide-activity"
         class="w-12 h-12 mx-auto mb-3 opacity-40"
       />
-      <p>No activity yet</p>
+      <p>No activity matches these filters</p>
     </div>
   </div>
 </template>
@@ -110,10 +150,47 @@ interface ActivityLog {
 
 const queryClient = useQueryClient();
 const expanded = ref(new Set<string>());
+const filters = reactive<{
+  type: string | undefined,
+  actor: string,
+  taskId: string,
+  limit: string
+}>({
+  type: undefined,
+  actor: '',
+  taskId: '',
+  limit: '50'
+});
+
+const eventTypeOptions = [
+  { label: 'Task created', value: 'task_created' },
+  { label: 'Task updated', value: 'task_updated' },
+  { label: 'Task completed', value: 'task_completed' },
+  { label: 'Agent started', value: 'agent_started' },
+  { label: 'Agent completed', value: 'agent_completed' },
+  { label: 'Cron run', value: 'cron_run' },
+  { label: 'Alert', value: 'alert' }
+];
+
+const limitOptions = [
+  { label: '25 events', value: '25' },
+  { label: '50 events', value: '50' },
+  { label: '100 events', value: '100' },
+  { label: '200 events', value: '200' }
+];
+
+const queryParams = computed(() => ({
+  ...(filters.type ? { type: filters.type } : {}),
+  ...(filters.actor.trim() ? { actor: filters.actor.trim() } : {}),
+  ...(filters.taskId.trim() ? { taskId: filters.taskId.trim() } : {}),
+  limit: filters.limit
+}));
+
+const activityQueryKey = computed(() => ['activity', queryParams.value]);
 
 const { data, isLoading, isFetching, refetch } = useQuery<ActivityLog[]>({
-  queryKey: ['activity'],
-  queryFn: () => $fetch('/api/activity'),
+  queryKey: activityQueryKey,
+  queryFn: () => $fetch('/api/activity', { query: queryParams.value }),
   refetchInterval: 60_000
 });
 
@@ -133,6 +210,14 @@ function refreshActivity() {
 
 function invalidateActivity() {
   queryClient.invalidateQueries({ queryKey: ['activity'] });
+}
+
+function clearFilters() {
+  filters.type = undefined;
+  filters.actor = '';
+  filters.taskId = '';
+  filters.limit = '50';
+  expanded.value = new Set();
 }
 
 function toggle(id: string) {

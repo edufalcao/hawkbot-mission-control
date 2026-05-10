@@ -115,21 +115,19 @@ Mission Control is not initially for non-technical users who expect hosted onboa
 - Runtime providers: `hermes`, `openclaw`, `manual`.
 - Runtime adapter boundary for dispatch.
 - Hermes/OpenClaw runtime health endpoint and Settings cards.
-- Activity log table and `/activity` page.
+- Activity log table and `/activity` page with filters by event type, actor, task ID, and limit.
 - SSE-driven dashboard updates.
 - Dispatcher output capture: duration, stdout/stderr tails, error/exit metadata.
-- Task output drawer/modal.
+- Task output drawer/modal with retry dispatch action for eligible agent tasks.
 - Agent busy/idle state, usage count, success count.
-- Telegram lifecycle notification utility and Settings toggles.
+- Telegram lifecycle notification utility, Settings toggles, and Activity logging for queued/failed notification attempts.
 - Calendar, Memory, Office, Team, and placeholder Content pages.
-- Vitest coverage for output summarization and notification formatting.
+- Vitest coverage for output summarization, notification formatting/metadata, activity filters, and retry eligibility.
 
 ### 5.2 Known Gaps
 
-- README roadmap still contains stale Phase 2 wording around Telegram notifications.
 - Content Pipeline is mostly placeholder.
 - Calendar is not yet a full scheduler management UI.
-- Runtime health is only in Settings; it should be more visible.
 - Notifications currently send via Hermes prompt indirection; direct gateway targeting may be useful later.
 - Local development cleanup removes `node_modules` and DB after major validation, so smoke-test task IDs are ephemeral.
 - Docker Compose is not implemented.
@@ -630,13 +628,16 @@ Deliverables:
 
 Goal: make runtime/task health visible at a glance.
 
-Candidate deliverables:
+Shipped deliverables:
 
 - Runtime health badges in sidebar/header.
-- Review/failure count badges.
 - Activity filters.
 - Retry dispatch action.
 - Notification delivery logging.
+
+Remaining candidates:
+
+- Review/failure count badges.
 
 ### P3 — Content Pipeline MVP
 

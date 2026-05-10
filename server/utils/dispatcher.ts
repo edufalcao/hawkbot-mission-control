@@ -123,7 +123,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
     const message = err instanceof Error ? err.message : 'Unknown runtime adapter error';
     console.error(`[dispatcher] Failed to build spawn plan for "${task.title}": ${message}`);
     revertDispatch(task, db, `Task "${task.title}" dispatch failed before spawn`, { provider, error: message });
-    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: message }, settingsMap);
+    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: message }, settingsMap, db);
     return;
   }
 
@@ -169,7 +169,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
       stdoutTail: tailOutput(stdoutChunks),
       stderrTail: tailOutput(stderrChunks)
     });
-    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: err.message }, settingsMap);
+    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: err.message }, settingsMap, db);
   });
 
   child.on('close', (code) => {
@@ -209,7 +209,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
         stdoutTail,
         stderrTail
       });
-      sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: `Exited with status ${code}` }, settingsMap);
+      sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: `Exited with status ${code}` }, settingsMap, db);
     }
   });
 }

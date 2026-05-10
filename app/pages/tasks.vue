@@ -107,6 +107,8 @@
     <TaskOutputModal
       v-model="showOutputModal"
       :task-id="selectedTaskId"
+      :team-members="teamMembers || []"
+      @retried="handleRetryComplete"
     />
   </div>
 </template>
@@ -131,7 +133,8 @@ interface TeamMember {
   id: string,
   name: string,
   emoji: string,
-  memberType: string
+  memberType: string,
+  runtimeProvider?: string | null
 }
 
 type ColumnId = 'todo' | 'in_progress' | 'review' | 'done';
@@ -232,5 +235,9 @@ async function handleDelete(id: string) {
 function openTaskOutput(id: string) {
   selectedTaskId.value = id;
   showOutputModal.value = true;
+}
+
+async function handleRetryComplete() {
+  await refetch();
 }
 </script>
