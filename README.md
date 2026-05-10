@@ -163,6 +163,7 @@ docker compose up -d
 - [x] Live Feed / Activity page (SSE + audit log)
 - [x] Runtime health badges for Hermes and OpenClaw
 - [x] Dispatch observability (duration, exit code, stdout/stderr tails)
+- [x] Task output drawer for review/debugging
 - [x] Agent busy/idle usage and success stats
 - [x] Drag-and-drop on Kanban (SortableJS via vue-draggable-plus)
 - [x] SSE-driven dashboard updates (replaced polling)

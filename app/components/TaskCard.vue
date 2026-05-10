@@ -1,5 +1,8 @@
 <template>
-  <div class="bg-gray-800 rounded-lg p-3 hover:bg-gray-750 transition-colors group">
+  <div
+    class="bg-gray-800 rounded-lg p-3 hover:bg-gray-750 transition-colors group cursor-pointer"
+    @click="emit('open', task.id)"
+  >
     <!-- Priority + assignee -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-1.5">
@@ -22,7 +25,10 @@
       </div>
 
       <!-- Actions -->
-      <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+      <div
+        class="opacity-0 group-hover:opacity-100 transition-opacity"
+        @click.stop
+      >
         <UDropdownMenu :items="actionItems">
           <UButton
             icon="i-lucide-more-horizontal"
@@ -94,7 +100,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   update: [data: { id: string, status?: string }],
-  delete: [id: string]
+  delete: [id: string],
+  open: [id: string]
 }>();
 
 const assigneeMember = computed(() => {

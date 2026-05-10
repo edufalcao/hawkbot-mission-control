@@ -83,6 +83,7 @@
               :team-members="teamMembers || []"
               @update="handleUpdate"
               @delete="handleDelete"
+              @open="openTaskOutput"
             />
           </div>
         </VueDraggable>
@@ -101,6 +102,11 @@
     <TaskCreateModal
       v-model="showCreateModal"
       @created="refetch"
+    />
+
+    <TaskOutputModal
+      v-model="showOutputModal"
+      :task-id="selectedTaskId"
     />
   </div>
 </template>
@@ -138,6 +144,8 @@ const COLUMNS: { id: ColumnId, label: string, emoji: string, color: 'neutral' | 
 ];
 
 const showCreateModal = ref(false);
+const showOutputModal = ref(false);
+const selectedTaskId = ref<string | null>(null);
 const isDragging = ref(false);
 
 // Per-column local task lists (needed for vue-draggable-plus v-model)
@@ -219,5 +227,10 @@ async function handleUpdate({ id, ...data }: { id: string, status?: string }) {
 async function handleDelete(id: string) {
   await $fetch(`/api/tasks/${id}`, { method: 'DELETE' });
   await refetch();
+}
+
+function openTaskOutput(id: string) {
+  selectedTaskId.value = id;
+  showOutputModal.value = true;
 }
 </script>
