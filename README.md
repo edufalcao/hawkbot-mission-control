@@ -171,8 +171,10 @@ docker compose up -d
 - [x] SSE-driven dashboard updates (replaced polling)
 - [x] Event-driven agent dispatch (immediate dispatch + 5-min sweeper fallback)
 - [x] Human vs Agent member types (auto-dispatch only for agents)
-- [ ] Content Pipeline (Phase 2)
-- [ ] Telegram notifications on task move (Phase 2)
+- [ ] Runtime health badges in sidebar/header (Phase 2)
+- [ ] Activity filters and retry dispatch action (Phase 2)
+- [ ] Content Pipeline MVP (Phase 2)
+- [ ] Scheduler/Cron control surface (Phase 3)
 - [ ] Docker Compose (Phase 3)
 
 ---

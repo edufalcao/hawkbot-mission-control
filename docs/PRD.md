@@ -1,1468 +1,776 @@
 # HawkBot Mission Control — Product Requirements Document
 
-**Version:** 1.0
-**Date:** 2026-03-17
-**Author:** HawkBot (AI Product Architect)
-**Status:** Draft
+**Version:** 2.0
+**Date:** 2026-05-10
+**Owner:** Eduardo Falcão Lima
+**Author:** HawkBot / Hermes
+**Status:** Active product draft
+**Repository:** `~/Projects/Personal/Repositories/hawkbot-mission-control`
 
 ---
 
-## Table of Contents
+## 1. Executive Summary
 
-1. [Vision & Positioning](#1-vision--positioning)
-2. [Target Users](#2-target-users)
-3. [Distribution Model](#3-distribution-model)
-4. [Setup Flow](#4-setup-flow)
-5. [Core Features](#5-core-features)
-6. [Multi-Agent Architecture](#6-multi-agent-architecture)
-7. [Agent Configuration](#7-agent-configuration)
-8. [Runtime Integrations](#8-runtime-integrations)
-9. [Data Model](#9-data-model)
-10. [API Design](#10-api-design)
-11. [UI/UX Specification](#11-uiux-specification)
-12. [Technical Architecture](#12-technical-architecture)
-13. [Phase Roadmap](#13-phase-roadmap)
-14. [Non-Goals](#14-non-goals)
-15. [Success Metrics](#15-success-metrics)
-16. [Appendix: Current State Analysis](#appendix-current-state-analysis)
+HawkBot Mission Control is a local-first command center for supervising and dispatching work across human users and AI agents. It began as an OpenClaw dashboard and is now evolving into a runtime-agnostic orchestration layer for Hermes, OpenClaw, and manual/human work.
+
+The core product promise:
+
+> See every agent, dispatch every task, inspect every result, and keep the human in control.
+
+Mission Control should make AI-agent work operationally safe: every dispatch is visible, every output is inspectable, every runtime has health status, and every important lifecycle transition can notify Eduardo through Telegram.
 
 ---
 
-## 1. Vision & Positioning
+## 2. Product Vision
 
-### What is Mission Control?
+### 2.1 What Mission Control Is
 
-Mission Control is a **local-first web dashboard** that gives OpenClaw users a visual command center for their multi-agent AI system. It replaces the experience of managing agents through scattered terminal windows, config files, and memory of cron schedules with a single, real-time interface.
+Mission Control is a personal AI operations dashboard for managing a small team of specialized agents and human tasks. It provides:
 
-### The Problem
+- A task board for assigning and tracking work.
+- Runtime adapters for Hermes, OpenClaw, and manual members.
+- Agent roster and status visibility.
+- Activity logs and task output inspection.
+- Runtime health checks.
+- Calendar/memory/content pipeline surfaces.
+- Telegram lifecycle alerts for important events.
 
-OpenClaw is powerful but headless. Users who run multiple specialized agents face these pain points:
+### 2.2 What Mission Control Is Not
 
-1. **No visibility** — You can't see what your agents are doing right now without tailing logs or asking them.
-2. **No coordination** — Assigning tasks to specific agents means crafting prompts manually and tracking outcomes in your head.
-3. **No memory overview** — Agent memory files accumulate without any browsable interface. You have to `cat` files to see what your agents remember.
-4. **No schedule overview** — Cron jobs are defined in config but there's no consolidated calendar view of what runs when.
-5. **No team management** — Adding, configuring, or monitoring agents requires editing `openclaw.json` directly.
+Mission Control is not:
 
-### The Position
+- A replacement for Hermes or OpenClaw.
+- A generic no-code automation product.
+- A model router or model selection UI.
+- A SaaS-first multi-tenant system.
+- A hidden autonomous system that works without audit trails.
 
-Mission Control is a **community-built dashboard layer for OpenClaw multi-agent setups**. It is not a replacement for OpenClaw — it's the GUI that OpenClaw doesn't ship. Think of it as Portainer to Docker, or Grafana to Prometheus: a visualization and coordination layer that makes the underlying system accessible to humans.
-
-### Core Value Proposition
-
-> "See everything. Dispatch anything. From one screen."
-
-- **See** what every agent is doing in real time
-- **Assign** tasks via a Kanban board that auto-dispatches to agents
-- **Browse** agent memory files without touching the terminal
-- **View** all scheduled jobs in a calendar
-- **Configure** your agent team through a UI instead of JSON files
+The system should stay local-first, explicit, observable, and operator-friendly.
 
 ---
 
-## 2. Target Users
+## 3. Target Users
 
-### Primary: OpenClaw Power Users
+### 3.1 Primary User: Eduardo / Personal AI Operator
 
-People who already run OpenClaw and want to scale from one agent to multiple specialized agents. They are comfortable with terminal but prefer a dashboard for oversight.
+The immediate target user is Eduardo: a technical operator who uses AI agents for software development, automation, research, planning, and personal workflows.
 
-**Profile:**
-- Technical (developers, sysadmins, AI enthusiasts)
-- Running OpenClaw on macOS or Linux (local machine or VPS)
-- Have 2-6 agents configured or want to set up a multi-agent system
-- Value visibility and coordination over automation
+Needs:
 
-### Secondary: OpenClaw Newcomers Seeking Multi-Agent
+- Dispatch coding/planning/research tasks quickly.
+- Know what each agent is doing.
+- Review outputs without digging through terminal logs.
+- Keep the dashboard lightweight and local.
+- Receive proactive Telegram alerts when attention is needed.
 
-People who heard about multi-agent setups and want a guided way to configure and manage them. Mission Control serves as the "friendly front door" to OpenClaw's agent system.
+### 3.2 Secondary User: Technical Agent Power User
 
-### Anti-Persona: Non-Technical Users
+A future target user is a developer running Hermes/OpenClaw locally who wants a GUI for agent orchestration.
 
-Mission Control assumes the user can install Node.js, run CLI commands, and understand what an AI agent is. It is not a no-code platform.
+Assumptions:
 
----
+- Comfortable with Node.js, CLI tools, local env files, and git.
+- Wants visibility more than heavy abstraction.
+- Accepts local-first setup and self-hosted operation.
 
-## 3. Distribution Model
+### 3.3 Anti-Persona
 
-### Chosen Model: npm Package + `npx` Launcher
-
-Mission Control ships as an **npm package** that users install globally or run via `npx`. This is the simplest distribution path for the target audience (Node.js developers already running OpenClaw on Node).
-
-```bash
-# One-command launch (downloads + runs)
-npx hawkbot-mission-control
-
-# Or install globally
-npm install -g hawkbot-mission-control
-mission-control
-```
-
-### Why npm over alternatives
-
-| Option | Verdict | Reason |
-|--------|---------|--------|
-| **npm package** | ✅ Chosen | Target users already have Node.js. Zero friction. Single command. |
-| Template repo (clone) | ❌ Rejected | Forces git clone workflow. Users don't need to edit source. Updates require manual pulls. |
-| Docker | ✅ Phase 3 add-on | Good for VPS deployments. Too heavy for local dev. Offered as alternative, not primary. |
-| OpenClaw plugin | ❌ Premature | OpenClaw doesn't have a plugin marketplace yet. |
-
-### Package Structure
-
-```
-hawkbot-mission-control/
-├── .output/            # Pre-built Nuxt production output
-├── bin/
-│   └── mission-control.mjs   # CLI entry point
-├── package.json
-└── README.md
-```
-
-The CLI entry point:
-1. Checks for OpenClaw installation (`which openclaw`)
-2. Reads gateway config from `~/.openclaw/openclaw.json` (auto-detects URL + token)
-3. Prompts for confirmation or lets user override via flags
-4. Starts the Nitro server on port 4000 (configurable via `--port`)
-5. Opens the browser
-
-```bash
-# CLI flags
-mission-control                          # Auto-detect everything
-mission-control --port 3000              # Custom port
-mission-control --gateway ws://x:18789   # Override gateway URL
-mission-control --workspace ~/my-agents  # Override workspace path
-mission-control --no-open                # Don't open browser
-```
-
-### Update Path
-
-```bash
-npm update -g hawkbot-mission-control
-# or
-npx hawkbot-mission-control@latest
-```
+Mission Control is not initially for non-technical users who expect hosted onboarding, billing, team permissions, or zero-config agent creation.
 
 ---
 
-## 4. Setup Flow
+## 4. Product Principles
 
-### Prerequisites
+1. **Runtime-agnostic orchestration**
+   Tasks, activity, output, and UI should not be coupled to one runtime. Hermes, OpenClaw, and manual execution are providers behind adapters.
 
-1. Node.js >= 24
-2. OpenClaw installed and gateway running (`openclaw gateway status` shows "running")
-3. At least one agent configured in `~/.openclaw/openclaw.json`
+2. **Human review is first-class**
+   Agent completion should usually move work to `review`, not straight to `done`.
 
-### First Run Experience
+3. **Observability over magic**
+   Every dispatch should capture provider, command display, duration, exit code/error, stdout tail, stderr tail, and activity logs.
 
-```
-$ npx hawkbot-mission-control
+4. **Runtime config owns model choice**
+   Mission Control should not pass per-agent model overrides. Hermes/OpenClaw profiles and defaults own model/provider selection.
 
-  🦅 HawkBot Mission Control v2.0.0
+5. **Telegram-safe communication**
+   Messages sent to Telegram should use conservative Markdown: headings, bold labels, plain bullets, no tables, no blockquotes.
 
-  ✔ OpenClaw gateway detected at ws://127.0.0.1:18789
-  ✔ Auth token found
-  ✔ Workspace: /Users/you/.openclaw/workspace
-  ✔ Found 3 agents in openclaw.json
+6. **Local-first and private**
+   Data lives in local SQLite/files unless explicitly configured otherwise. Secrets are never displayed or logged.
 
-  Starting dashboard on http://localhost:4000 ...
-
-  ✔ Ready! Opening browser...
-```
-
-### Onboarding Wizard (In-App, First Visit)
-
-When the user opens Mission Control for the first time (no tasks, no custom team), they see a guided setup:
-
-**Step 1: Welcome**
-> "Mission Control gives you a visual command center for your OpenClaw agents. Let's get you set up."
-
-**Step 2: Agent Discovery**
-The app reads `~/.openclaw/openclaw.json` → `agents.list` and displays discovered agents:
-> "We found 3 agents in your OpenClaw config. Want to import them as your team?"
-> [Import All] [Customize First] [Skip — I'll set up manually]
-
-**Step 3: First Task**
-> "Create your first task and assign it to an agent. When you move it to 'To Do', Mission Control will dispatch it automatically."
-> [Create a Test Task] [Skip]
-
-**Step 4: Done**
-> "You're all set. Here's what you can do: [Tasks] [Calendar] [Memory] [Team]"
-
-### Acceptance Criteria
-
-- [ ] `npx hawkbot-mission-control` starts the server within 10 seconds
-- [ ] Auto-detects gateway URL and token from `~/.openclaw/openclaw.json`
-- [ ] Falls back to environment variables if config file is missing
-- [ ] Shows clear error if gateway is not running
-- [ ] First-visit wizard completes in under 60 seconds
-- [ ] Imported agents appear in the Team page immediately
+7. **Small, testable slices**
+   New behavior should be extracted into pure utilities where practical and tested with Vitest before UI/API wiring.
 
 ---
 
-## 5. Core Features
+## 5. Current State
 
-### 5.1 Tasks Board (Kanban)
+### 5.1 Built
 
-**Status: Built (Phase 1) — needs generalization**
+- Nuxt 4 app with Nuxt UI and Tailwind.
+- SQLite/Drizzle local database.
+- Tasks Kanban with statuses: `todo`, `in_progress`, `review`, `done`.
+- Human vs agent team members.
+- Runtime providers: `hermes`, `openclaw`, `manual`.
+- Runtime adapter boundary for dispatch.
+- Hermes/OpenClaw runtime health endpoint and Settings cards.
+- Activity log table and `/activity` page.
+- SSE-driven dashboard updates.
+- Dispatcher output capture: duration, stdout/stderr tails, error/exit metadata.
+- Task output drawer/modal.
+- Agent busy/idle state, usage count, success count.
+- Telegram lifecycle notification utility and Settings toggles.
+- Calendar, Memory, Office, Team, and placeholder Content pages.
+- Vitest coverage for output summarization and notification formatting.
 
-A 4-column Kanban board for managing work across agents and humans.
+### 5.2 Known Gaps
 
-#### Columns
-
-| Column | Status Key | Semantics |
-|--------|-----------|-----------|
-| To Do | `todo` | Queued. If assigned to an agent, auto-dispatched immediately. |
-| In Progress | `in_progress` | Agent or human is working on it. |
-| Review | `review` | Work complete, awaiting human review. |
-| Done | `done` | Accepted. `completedAt` timestamp set. |
-
-#### Task Properties
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | UUID | auto | Primary key |
-| `title` | string | yes | Short task description |
-| `description` | string | no | Detailed instructions for the agent |
-| `status` | enum | yes | `todo`, `in_progress`, `review`, `done` |
-| `assignee` | string | yes | Team member ID (not hardcoded name) |
-| `priority` | enum | yes | `high`, `medium`, `low`, `none` |
-| `tags` | string[] | no | Free-form labels |
-| `sessionKey` | string | no | OpenClaw session ID tracking this task |
-| `dispatchedAt` | ISO string | no | When last dispatched to an agent |
-| `createdAt` | ISO string | auto | Creation timestamp |
-| `updatedAt` | ISO string | auto | Last modification |
-| `completedAt` | ISO string | auto | When moved to `done` |
-
-#### Interactions
-
-- **Drag & drop** between columns — triggers status change + auto-dispatch if moved to `todo`
-- **Create task** via modal — title, description, assignee, priority, tags
-- **Quick actions** on card hover — context menu with valid status transitions
-- **Delete** via context menu (with confirmation)
-- **Real-time updates** — SSE-driven invalidation when tasks change server-side
-
-#### Auto-Dispatch Behavior
-
-When a task is created with status `todo` or moved to `todo` and assigned to an agent:
-1. Dispatcher checks if assignee is `memberType === 'agent'` (skips humans)
-2. Moves task to `in_progress` immediately
-3. Spawns `openclaw agent --session-id <id> --message "<prompt>"` as a detached child process
-4. On process exit code 0: task stays `in_progress` (agent should PATCH to `review` when done)
-5. On process exit non-zero: task reverts to `todo`
-6. **Sweeper fallback**: Every 5 minutes, scans for `todo` tasks that weren't dispatched and dispatches them
-
-#### Acceptance Criteria
-
-- [ ] Drag-and-drop works across all 4 columns with visual feedback
-- [ ] Tasks assigned to human members are NOT auto-dispatched
-- [ ] Tasks assigned to agent members ARE auto-dispatched within 1 second of creation
-- [ ] Failed dispatches revert task to `todo` with an activity log entry
-- [ ] SSE updates reflect task changes within 500ms across all connected clients
-- [ ] Assignee dropdown shows all team members (not hardcoded two options)
-
-#### Gap from Current State
-
-The current implementation hardcodes assignee to `'eduardo' | 'hawkbot'` in both the schema enum and the TaskCreateModal. This must change to a dynamic team member lookup:
-- Schema: `assignee` becomes a free `text` field (foreign key to `team_members.id` by convention)
-- TaskCreateModal: Fetches team members from `/api/team` and populates the assignee dropdown dynamically
-- TaskCard: Displays assignee emoji + name from team member data instead of hardcoded badge
+- README roadmap still contains stale Phase 2 wording around Telegram notifications.
+- Content Pipeline is mostly placeholder.
+- Calendar is not yet a full scheduler management UI.
+- Runtime health is only in Settings; it should be more visible.
+- Notifications currently send via Hermes prompt indirection; direct gateway targeting may be useful later.
+- Local development cleanup removes `node_modules` and DB after major validation, so smoke-test task IDs are ephemeral.
+- Docker Compose is not implemented.
+- PRD and roadmap have historically lagged behind the actual implementation.
 
 ---
 
-### 5.2 Calendar
+## 6. Core Workflows
 
-**Status: Built (Phase 1) — basic list view**
+### 6.1 Task Dispatch Workflow
 
-Displays all cron jobs from the OpenClaw gateway in a unified view.
+1. User creates a task or moves a task to `todo`.
+2. Mission Control checks whether the assignee is human or agent.
+3. Human tasks stay queued for manual work.
+4. Agent tasks move to `in_progress` immediately.
+5. Dispatcher resolves the assignee runtime provider.
+6. Runtime adapter builds a safe spawn plan: `command` + `args`, not shell string.
+7. Mission Control spawns the runtime process.
+8. Runtime output is captured and bounded.
+9. Agent marks task `review` through API callback when finished.
+10. User reviews captured output and moves task to `done` or back to work.
 
-#### Data Source
+Acceptance criteria:
 
-Primary: `openclaw gateway call cron.list --json` (CLI invocation from server)
-Fallback: `{workspace}/memory/calendar.json` (static file)
+- Agent tasks dispatch within 1 second of entering `todo`.
+- Human tasks never auto-dispatch.
+- Failed dispatches revert to `todo` and emit activity.
+- Successful runtime completion records an `agent_completed` activity entry.
+- Output drawer shows newest runtime output for the task.
 
-#### Current View: List
+### 6.2 Review Workflow
 
-A flat list of cron jobs with:
-- Job name
-- Cron expression / schedule type
-- Next run time
-- Status (scheduled / disabled)
-- Color-coded status indicator
+1. User opens Tasks page.
+2. User sees cards in Review column.
+3. User clicks a task card.
+4. Output drawer shows task details, runtime metadata, stdout/stderr, and timeline.
+5. User accepts by moving to `done`, or sends back to `todo`/`in_progress` with updated instructions.
 
-#### Planned Enhancements (Phase 2)
+Acceptance criteria:
 
-- **Calendar grid view** — Month/week/day views showing cron jobs as events
-- **One-time events** — Support for reminders and milestones (not just cron)
-- **Create/edit cron** — Form to create new cron jobs via gateway API
-- **Run history** — Show last N runs per job with success/failure indicators
-- **Timezone display** — Show times in user's local timezone
+- Review queue is visually obvious.
+- Inspecting a task requires one click.
+- stdout/stderr empty state is clear.
+- Task status transition updates through SSE without page reload.
 
-#### Acceptance Criteria
+### 6.3 Notification Workflow
 
-- [ ] Displays all cron jobs from the gateway within 5 seconds of page load
-- [ ] Shows "Gateway not connected" message when gateway is unavailable
-- [ ] Refresh button re-fetches from gateway
-- [ ] (Phase 2) Calendar grid renders jobs on correct dates
-- [ ] (Phase 2) Creating a cron job via UI actually registers it in OpenClaw
+1. User enables Telegram notifications in Settings.
+2. User enables per-event toggles: review, failure, done.
+3. Mission Control sends Telegram-safe messages for enabled events.
+4. Message includes task title, assignee, runtime, and inspect URL.
 
----
+Acceptance criteria:
 
-### 5.3 Memory Browser
+- Notifications are disabled by default.
+- Review/failure toggles default to enabled once global notifications are enabled.
+- Done toggle defaults to disabled to avoid noise.
+- Messages contain no Markdown tables or pipe characters.
+- Failures include useful error detail without secrets.
 
-**Status: Built (Phase 1) — functional**
+### 6.4 Runtime Health Workflow
 
-A visual browser for all `.md` files in the OpenClaw workspace, with search.
+1. User opens Settings or future sidebar runtime status.
+2. Mission Control probes Hermes and OpenClaw CLI availability.
+3. OpenClaw gateway/session configuration is reported without leaking tokens.
+4. UI shows ready, needs config, or unavailable state.
 
-#### File Discovery
+Acceptance criteria:
 
-Scans:
-1. `{workspace}/MEMORY.md` — long-term memory file
-2. `{workspace}/memory/*.md` — daily memory files
-
-#### File Categorization
-
-| Type | Detection Rule | Emoji |
-|------|---------------|-------|
-| `memory` | filename is `MEMORY` | 🧠 |
-| `daily` | filename matches `YYYY-MM-DD` | 📅 |
-| `plan` | filename contains `plan` | 🗺️ |
-| `other` | everything else | 📄 |
-
-#### Interactions
-
-- **Grid view** — Cards showing file name, type badge, preview (first 200 chars), modification date
-- **Search** — Full-text search across all file contents (server-side filtering)
-- **File viewer** — Modal with full file content (raw markdown, monospace)
-- **Sorting** — MEMORY.md first, then by modification date descending
-
-#### Planned Enhancements (Phase 2)
-
-- **Markdown rendering** — Render markdown instead of raw text in the viewer
-- **Edit capability** — Edit memory files directly from the UI
-- **Multi-agent memory** — When agents have separate workspaces, browse each agent's memory
-- **Diff view** — Show changes between versions of a memory file
-- **Search highlighting** — Highlight search matches in results and viewer
-
-#### Acceptance Criteria
-
-- [ ] Lists all `.md` files from workspace root and `memory/` directory
-- [ ] Search filters files in real time (debounced, server-side)
-- [ ] File viewer shows complete content
-- [ ] Files sorted correctly (MEMORY.md first, then by date)
-- [ ] (Phase 2) Markdown rendered with proper formatting
-- [ ] (Phase 2) Edits save back to the filesystem
+- Disabled optional gateway is not treated as fatal.
+- Missing CLI is clearly explained.
+- No config secrets are displayed.
+- Health refresh is available manually and periodically.
 
 ---
 
-### 5.4 Team Management
+## 7. Feature Areas
 
-**Status: Built (Phase 1) — static display, hardcoded seed**
+### 7.1 Tasks
 
-Displays the agent roster with status, runtime, specialties, and usage stats.
+Purpose: central board for work orchestration.
 
-#### Current Implementation
+Must support:
 
-- Team members are seeded from a hardcoded array on first startup
-- Read-only display in a card grid
-- Shows: emoji, name, role, runtime, specialties, status, usage count
-- Status indicator (green pulse = busy, blue = active, gray = idle)
+- Create, edit, delete tasks.
+- Drag/drop status transitions.
+- Human/agent assignees.
+- Priority and tags.
+- Auto-dispatch for agents.
+- Output inspection.
+- Review-first lifecycle.
 
-#### Required Changes for Distribution
+Future enhancements:
 
-The entire team management system must be redesigned:
+- Comments/activity inline on task drawer.
+- Retry dispatch button.
+- Duplicate task.
+- Task templates.
+- Blocks/dependencies.
+- GitHub issue/PR references.
 
-1. **No hardcoded seed** — Remove `DEFAULT_TEAM` from `seed.ts`. Instead, on first run, import agents from `openclaw.json`
-2. **CRUD operations** — Add endpoints for creating, updating, and deleting team members
-3. **Agent config sync** — Two-way sync between Mission Control's team roster and OpenClaw's `agents.list` config
-4. **Dynamic status** — Query gateway for real agent session status instead of relying on manual status field
+### 7.2 Team
 
-#### Team Member Properties
+Purpose: roster of humans and AI agents.
 
-| Field | Type | Source | Description |
-|-------|------|--------|-------------|
-| `id` | UUID | Mission Control | Internal identifier |
-| `name` | string | User / OpenClaw config | Display name |
-| `memberType` | enum | User | `human` or `agent` |
-| `emoji` | string | User | Avatar emoji |
-| `role` | string | User | Freeform role label |
-| `specialties` | string[] | User | Tags describing capabilities |
-| `description` | string | User | Freeform description |
-| `status` | enum | Live query | `active`, `idle`, `busy` |
-| `openclawAgentId` | string | OpenClaw config | Maps to `agents.list[].name` |
-| `agentDir` | string | OpenClaw config | Agent workspace directory |
-| `sessionId` | string | Gateway | Current active session, if any |
+Must support:
 
-#### Acceptance Criteria
+- Human and agent member types.
+- Runtime provider per agent: Hermes, OpenClaw, manual.
+- Runtime profile/command/workdir metadata.
+- Current task and status.
+- Usage and success stats.
+- CRUD endpoints.
 
-- [ ] First run imports agents from `openclaw.json` automatically
-- [ ] User can add new team members via a creation form
-- [ ] User can edit team member properties
-- [ ] User can delete team members (with confirmation)
-- [ ] Agent status reflects actual gateway session state
-- [ ] Assignee dropdowns across the app populate from this team roster
+Future enhancements:
 
----
+- Agent templates.
+- Direct test-dispatch button per agent.
+- Runtime capability badges.
+- Per-agent recent activity timeline.
 
-### 5.5 Office View (Gamified)
+### 7.3 Activity
 
-**Status: Built (Phase 1) — visual only**
+Purpose: audit trail for system behavior.
 
-A fun, gamified visualization of agents "working at their desks." Agents show as emoji at workstations, with animated indicators when busy.
+Must support:
 
-#### Current Implementation
+- Recent activity page.
+- Event type, actor, message, taskId, metadata, createdAt.
+- Runtime metadata display.
+- SSE broadcasting.
 
-- Grid of workstation cards (2-3 columns)
-- Each agent has a desk with a "monitor" showing activity bars when busy
-- Busy agents bounce and have a green ping indicator
-- Idle agents show static
+Future enhancements:
 
-#### Planned Enhancements (Phase 2)
+- Filters by task/actor/type/date.
+- Deep links to task output drawer.
+- Infinite scroll.
+- Export logs.
 
-- **Current task display** — Show the task title the agent is working on
-- **Activity sparkline** — Mini graph of recent activity (tasks completed per day)
-- **Click to expand** — Click an agent to see their full profile, current task, and recent activity
-- **Sound effects** — Optional notification sounds when agents complete tasks
+### 7.4 Runtime Health
 
-#### Acceptance Criteria
+Purpose: make runtime readiness obvious.
 
-- [ ] All team members appear in the office grid
-- [ ] Busy agents show clear visual distinction from idle ones
-- [ ] (Phase 2) Current task title visible on busy agent's "monitor"
+Must support:
 
----
+- Hermes CLI probe.
+- OpenClaw CLI probe.
+- Gateway/session configuration status.
+- Settings cards.
 
-### 5.6 Live Activity Feed
+Future enhancements:
 
-**Status: Built (Phase 1) — server-side complete, no dedicated UI page**
+- Sidebar badges.
+- Header warning banner when selected runtime is unavailable.
+- One-click smoke tests.
 
-A real-time event stream powered by Server-Sent Events (SSE).
+### 7.5 Calendar
 
-#### Architecture
+Purpose: view scheduled automation and upcoming work.
 
-```
-Hermes/OpenClaw CLI ──spawn──► Nitro Server ──SSE──► Browser
-Optional OpenClaw Gateway ──WebSocket──► Nitro Server ──SSE──► Browser
-                                     │
-                              Activity Log DB
-```
+Current role:
 
-Every mutation (task CRUD, agent status change) is:
-1. Written to the `activity_log` table
-2. Broadcast to all connected SSE clients
-3. Used by the frontend to invalidate TanStack Query caches
+- Calendar surface for cron/scheduled jobs.
 
-#### Current Events
+Future enhancements:
 
-| Event Type | Trigger |
-|------------|---------|
-| `task_created` | New task via POST |
-| `task_updated` | Task field change via PATCH |
-| `task_completed` | Task moved to `done` |
-| `task_deleted` | Task removed via DELETE |
-| `connected` | SSE client first connects |
+- Hermes cron integration.
+- OpenClaw cron integration where available.
+- Create/edit/pause/resume jobs from UI.
+- Run history and failure alerts.
+- Topic/channel delivery awareness.
 
-#### Planned: Dedicated Activity Page (Phase 2)
+### 7.6 Memory
 
-A full-page activity timeline showing:
-- All events in reverse chronological order
-- Filterable by actor, event type, date range
-- Clickable task references
-- Gateway events (cron runs, agent sessions)
+Purpose: browse local memory/workspace markdown files.
 
-#### Acceptance Criteria
+Future enhancements:
 
-- [ ] SSE connection established within 2 seconds of page load
-- [ ] Reconnects automatically after disconnection (5s backoff)
-- [ ] Singleton pattern — only one EventSource per browser tab
-- [ ] Ref-counted cleanup — EventSource closes when no components are listening
-- [ ] (Phase 2) Activity page shows last 100 events with infinite scroll
+- Hermes memory awareness.
+- Agent-specific workspaces.
+- Render markdown.
+- Diff view.
+- Safe editing with backups.
 
----
+### 7.7 Content Pipeline
 
-### 5.7 Content Pipeline
+Purpose: manage content creation workflows from idea to publication.
 
-**Status: Placeholder (Phase 2)**
+Target stages:
 
-A Kanban-style pipeline for content creation workflows (blog posts, videos, social media).
+- Idea
+- Script
+- Thumbnail
+- Filming
+- Editing
+- Published
 
-#### Stages
+Future enhancements:
 
-| Stage | Description |
-|-------|-------------|
-| Idea | Raw concept or topic |
-| Script | Written draft / outline |
-| Thumbnail | Visual assets created |
-| Filming | Recording in progress |
-| Editing | Post-production |
-| Published | Live on platforms |
+- Assign stage owners.
+- Generate briefs/scripts with agents.
+- Store asset paths and published URLs.
+- Trigger content tasks from pipeline cards.
 
-#### Schema (already defined)
+### 7.8 Office
 
-The `content_items` table already exists in the schema with fields for title, stage, script, thumbnail path, platforms, and timestamps.
+Purpose: gamified status overview.
 
-#### Acceptance Criteria
+Future enhancements:
 
-- [ ] Kanban board with 6 columns matching content stages
-- [ ] Create content item with title and initial stage
-- [ ] Drag between stages
-- [ ] Assign to team members for each stage
-- [ ] Track target platforms (YouTube, Twitter, Blog, etc.)
-- [ ] Link to published URLs
+- Show current task title.
+- Show last completion time.
+- Click agent to open profile/activity.
+- Optional sound/visual completion cues.
 
 ---
 
-## 6. Multi-Agent Architecture
+## 8. Runtime Architecture
 
-### Runtime Agent Model
+### 8.1 Provider Model
 
-OpenClaw supports multiple agents via the `agents.list` configuration in `~/.openclaw/openclaw.json`:
+Runtime providers:
 
-```json
-{
-  "agents": {
-    "list": [
-      {
-        "name": "dev",
-                "agentDir": "~/.openclaw/agents/dev",
-        "tools": ["exec", "read", "write", "edit", "web_search"]
-      },
-      {
-        "name": "research",
-                "agentDir": "~/.openclaw/agents/research",
-        "tools": ["web_search", "web_fetch", "read", "write"]
-      }
-    ]
-  }
-}
-```
+- `manual`: no process spawn, human/manual work.
+- `hermes`: spawn Hermes CLI using configured profile/defaults.
+- `openclaw`: spawn OpenClaw CLI and optional gateway integrations.
 
-Each agent has:
-- **Isolated workspace** — Its own `agentDir` with separate SOUL.md, MEMORY.md, skills
-- **Own tools** — Tool access can be restricted per agent
-- **Session isolation** — Runs in its own session context
+Mission Control owns:
 
-### Orchestration Pattern
+- Task lifecycle.
+- Dispatch prompt construction.
+- Process spawning.
+- Output capture.
+- Activity records.
+- UI state.
 
-Mission Control implements a **hub-and-spoke orchestration** model:
+Runtime owns:
 
-```
-                    ┌─────────────────────┐
-                    │   Mission Control   │
-                    │    (Dashboard)      │
-                    └──────────┬──────────┘
-                               │ HTTP/SSE
-                    ┌──────────┴──────────┐
-                    │   Nitro Server      │
-                    │   (Orchestrator)    │
-                    └──────────┬──────────┘
-                               │ WebSocket
-                    ┌──────────┴──────────┐
-                    │  OpenClaw Gateway   │
-                    └──┬──────┬──────┬────┘
-                       │      │      │
-                    ┌──┴──┐ ┌─┴──┐ ┌─┴──┐
-                    │ Dev │ │Res │ │Ops │  Agents
-                    └─────┘ └────┘ └────┘
-```
+- Model/provider choice.
+- Tool availability.
+- Internal memory/session handling.
+- Agent execution details.
 
-1. **User creates a task** in Mission Control (via Kanban)
-2. **Dispatcher** checks if assignee is an agent
-3. If yes, **spawns** `openclaw agent --session-id <id> --message "<prompt>"`
-4. Agent works in its own session, using its own tools and workspace
-5. When done, agent **calls back** via `curl -X PATCH http://localhost:4000/api/tasks/<id>` to move the task to `review`
-6. **SSE** broadcasts the status change to the dashboard
-7. Human reviews and moves to `done` (or back to `in_progress`)
+### 8.2 Spawn Plan Contract
 
-### Shared Space Pattern
+Runtime adapters should return:
 
-Since OpenClaw doesn't natively support a shared filesystem across agents, Mission Control uses a **filesystem convention**:
+- `command`: executable name/path.
+- `args`: string array.
+- `displayCommand`: redacted/safe display form.
+- `cwd`: optional working directory.
+- `env`: optional environment overrides.
 
-```
-~/.openclaw/
-├── workspace/           # Main agent (HawkBot) workspace
-│   ├── shared/          # ← Shared space convention
-│   │   ├── specs/       # Requirements, PRDs, contracts
-│   │   ├── outputs/     # Agent deliverables
-│   │   └── context/     # Cross-agent context files
-│   ├── MEMORY.md
-│   └── memory/
-├── agents/
-│   ├── dev/             # Dev agent workspace
-│   │   ├── SOUL.md
-│   │   └── MEMORY.md
-│   ├── research/
-│   └── ops/
-```
+Rules:
 
-**Rules:**
-- The `shared/` directory lives in the main agent's workspace
-- All agents have read access to `shared/` (via tools like `read`)
-- Agents write outputs to `shared/outputs/{agent-name}/`
-- Mission Control can browse `shared/` in the Memory page
-- Cross-agent context (e.g., "Research Agent, here are the requirements from Dev Agent") is passed via the dispatcher prompt, which includes relevant shared files
+- Never use `sh -c` for prompt execution.
+- Never include raw secrets in `displayCommand`.
+- Never pass model overrides unless a future explicit product decision changes this.
 
-### Task Dispatch Protocol
+### 8.3 Dispatch Metadata
 
-When Mission Control dispatches a task to an agent, the prompt includes:
+Activity metadata for runtime completion/failure should include:
 
-```
-New task from Mission Control:
-
-📋 Agent: 💻 Dev Agent
-🎯 Specialties: javascript, nuxt, typescript, node
-
-**Build the user settings page**
-Add a /settings page with profile editing, theme toggle, and notification preferences.
-
-When finished: curl -X PATCH http://localhost:4000/api/tasks/{id} \
-  -H "Content-Type: application/json" \
-  -d '{"status":"review"}'
-```
-
-This protocol is critical — the agent must know:
-1. What to do (task title + description)
-2. Its identity and specialties (context for self-orientation)
-3. How to signal completion (HTTP callback)
-
----
-
-## 7. Agent Configuration
-
-### Current Problem
-
-The current codebase hardcodes a `DEFAULT_TEAM` array in `seed.ts` with Eduardo's specific agents. This is unusable for any other OpenClaw user.
-
-### Solution: Config-Driven Agent Import
-
-#### Phase 1: Import from openclaw.json
-
-On first run, Mission Control reads `~/.openclaw/openclaw.json` and imports agents:
-
-```typescript
-// Pseudo-code for agent import
-const openclawConfig = JSON.parse(readFileSync('~/.openclaw/openclaw.json'));
-const agents = openclawConfig.agents?.list || [];
-
-for (const agent of agents) {
-  // Create team member from OpenClaw agent config
-  db.insert(teamMembers).values({
-    id: uuidv4(),
-    name: agent.name,
-    memberType: 'agent',
-    emoji: inferEmoji(agent.name), // 💻 for "dev", 🔍 for "research", etc.
-    role: inferRole(agent.name),
-    specialties: JSON.stringify(agent.tools || []),
-    description: `Imported from openclaw.json`,
-    openclawAgentId: agent.name,
-    agentDir: agent.agentDir,
-    status: 'idle',
-    createdAt: new Date().toISOString()
-  });
-}
-
-// Also add the current user as a human member
-db.insert(teamMembers).values({
-  id: uuidv4(),
-  name: os.userInfo().username,
-  memberType: 'human',
-  emoji: '👤',
-  role: 'owner',
-  specialties: JSON.stringify(['management', 'review']),
-  description: 'Project owner',
-  status: 'active',
-  createdAt: new Date().toISOString()
-});
-```
-
-#### Phase 2: UI-Driven Agent Creation
-
-A form in the Team page lets users:
-1. Define a new agent (name, role, runtime, specialties)
-2. Mission Control generates the `agents.list` entry
-3. Optionally writes back to `openclaw.json` (with user confirmation)
-4. Creates the agent's workspace directory with template SOUL.md
-
-#### Phase 3: Agent Templates
-
-Pre-built agent templates users can one-click install:
-
-| Template | Role | Runtime | Tools | SOUL.md |
-|----------|------|---------|-------|---------|
-| HawkBot - Hermes | assistant | Hermes defaults | Hermes configured tools | Orchestration-focused personality |
-| HawkBot - OpenClaw | assistant | OpenClaw defaults | OpenClaw configured tools | Orchestration-focused personality |
-| Custom | — | user choice | user choice | Blank template |
-
----
-
-## 8. Runtime Integrations
-
-### Gateway WebSocket Connection
-
-Mission Control treats the OpenClaw Gateway as optional. Hermes/OpenClaw dispatch works through runtime adapters; the gateway is only required for gateway-native OpenClaw features.
-
-#### Connection Lifecycle
-
-```
-Startup → Connect(ws://gateway:18789, Bearer token)
-  ├─ on open  → Log "Connected ✅"
-  ├─ on message → JSON parse → Broadcast to SSE clients
-  ├─ on error → Log error
-  └─ on close → Reconnect after 5 seconds
-```
-
-#### Authentication
-
-Token source priority:
-1. `OPENCLAW_GATEWAY_TOKEN` environment variable
-2. `~/.openclaw/openclaw.json` → `gateway.auth.token`
-3. No token (local connections may not require auth)
-
-#### Gateway API Usage
-
-| Operation | Method | Purpose |
-|-----------|--------|---------|
-| Cron list | `openclaw gateway call cron.list` | Calendar page data |
-| Agent dispatch | `openclaw agent --session-id X --message Y` | Task auto-dispatch |
-| Session list | (Phase 2) `openclaw gateway call sessions.list` | Live agent status |
-| Cron create | (Phase 2) `openclaw gateway call cron.create` | Calendar management |
-
-### agents.list Config Integration
-
-#### Read Path (current)
-
-Mission Control reads `openclaw.json` to discover agents during setup/import.
-
-#### Write Path (Phase 2)
-
-When a user creates a new agent via Mission Control's UI:
-1. Mission Control generates the agent config object
-2. Reads current `openclaw.json`
-3. Appends to `agents.list`
-4. Writes back (after user confirmation dialog)
-5. Signals gateway to reload config (if supported)
-
-### Session Routing
-
-Each dispatched task uses `openclaw agent --session-id <MAIN_SESSION_ID>`. This is currently hardcoded to a single session ID.
-
-#### Phase 2: Per-Agent Sessions
-
-Each agent gets its own session ID, allowing:
-- Independent conversation threads
-- Session-specific memory
-- Concurrent dispatches without conflicts
-
-```typescript
-// Generate stable session ID from agent name
-const sessionId = uuidv5(agent.openclawAgentId, MISSION_CONTROL_NAMESPACE);
-```
+- provider
+- command display
+- durationMs
+- exitCode or error
+- stdoutTail
+- stderrTail
 
 ---
 
 ## 9. Data Model
 
-### Entity Relationship
+### 9.1 `tasks`
 
-```
-┌──────────────┐       ┌──────────────┐
-│ team_members │◄──────│    tasks     │
-│              │  1:N   │              │
-│ id (PK)      │       │ id (PK)      │
-│ name         │       │ title        │
-│ memberType   │       │ description  │
-│ emoji        │       │ status       │
-│ role         │       │ assignee ──────► team_members.id
-│ runtime      │       │ priority     │
-│ specialties  │       │ tags []      │
-│ description  │       │ sessionKey   │
-│ status       │       │ dispatchedAt │
-│ agentDir     │       │ createdAt    │
-│ openclawId   │       │ updatedAt    │
-│ currentTask  │       │ completedAt  │
-│ usageCount   │       └──────┬───────┘
-│ successCount │              │
-│ createdAt    │              │
-└──────────────┘              │
-                              │
-┌──────────────┐              │
-│ activity_log │◄─────────────┘
-│              │       task_id (FK)
-│ id (PK)      │
-│ type         │
-│ actor        │
-│ message      │
-│ taskId       │
-│ metadata {}  │
-│ createdAt    │
-└──────────────┘
+Important fields:
 
-┌───────────────┐
-│ content_items │  (Phase 2)
-│               │
-│ id (PK)       │
-│ title         │
-│ stage         │
-│ script        │
-│ thumbnailPath │
-│ platforms []  │
-│ assignee      │
-│ createdAt     │
-│ updatedAt     │
-│ publishedAt   │
-└───────────────┘
-```
+- `id`
+- `title`
+- `description`
+- `status`
+- `assignee`
+- `priority`
+- `tags`
+- `sessionKey`
+- `dispatchedAt`
+- `createdAt`
+- `updatedAt`
+- `completedAt`
 
-### Schema Changes Required for Distribution
+### 9.2 `team_members`
 
-#### team_members (additions)
+Important fields:
 
-```sql
-ALTER TABLE team_members ADD COLUMN openclaw_agent_id TEXT;  -- maps to agents.list[].name
-ALTER TABLE team_members ADD COLUMN agent_dir TEXT;           -- workspace directory path
-```
+- `id`
+- `name`
+- `memberType`
+- `emoji`
+- `role`
+- `specialties`
+- `description`
+- `status`
+- `currentTaskId`
+- `lastUsed`
+- `runtimeProvider`
+- `runtimeProfile`
+- `runtimeCommand`
+- `runtimeWorkdir`
+- `openclawAgentId`
+- `agentDir`
+- `usageCount`
+- `successCount`
+- `createdAt`
 
-#### tasks (changes)
+### 9.3 `settings`
 
-```sql
--- Remove enum constraint on assignee, make it a plain text field
--- referencing team_members.id instead of hardcoded names
-```
+Current and expected keys include:
 
-#### settings (new table — Phase 2)
+- `gateway_url`
+- `gateway_token`
+- `workspace_path`
+- `main_session_id`
+- `openclaw_main_session_id`
+- `default_runtime_provider`
+- `hermes_default_profile`
+- `hermes_worktree_mode`
+- `telegram_notifications_enabled`
+- `notify_on_review`
+- `notify_on_failure`
+- `notify_on_done`
+- `notification_hermes_profile`
+- `dispatch_prompt_template`
 
-```sql
-CREATE TABLE settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-```
+### 9.4 `activity_log`
 
-Used for:
-- `gateway.url` — WebSocket URL
-- `gateway.token` — Auth token
-- `workspace.path` — Workspace directory
-- `onboarding.completed` — Whether setup wizard ran
-- `dispatch.main_session_id` — Session ID for dispatching
-- `ui.theme` — Theme preference
+Important fields:
 
----
+- `id`
+- `type`
+- `actor`
+- `message`
+- `taskId`
+- `metadata`
+- `createdAt`
 
-## 10. API Design
+Future consideration:
 
-### Existing Endpoints
+- Expand enum to include `team_updated`, `notification_sent`, `notification_failed`, and content-specific events if needed.
 
-#### Tasks
+### 9.5 `content_items`
 
-| Method | Path | Purpose | Request Body | Response |
-|--------|------|---------|-------------|----------|
-| GET | `/api/tasks` | List all tasks | Query: `?status=todo&assignee=X` | `Task[]` |
-| POST | `/api/tasks` | Create task | `{ title, description?, assignee?, priority?, tags? }` | `Task` |
-| PATCH | `/api/tasks/:id` | Update task | `{ title?, description?, status?, assignee?, priority?, tags? }` | `Task` |
-| PUT | `/api/tasks/:id` | Update task (alias) | Same as PATCH | `Task` |
-| DELETE | `/api/tasks/:id` | Delete task | — | `{ success: true }` |
+Current placeholder fields:
 
-#### Team
+- `id`
+- `title`
+- `stage`
+- `script`
+- `thumbnailPath`
+- `platforms`
+- `createdAt`
+- `updatedAt`
+- `publishedAt`
 
-| Method | Path | Purpose | Response |
-|--------|------|---------|----------|
-| GET | `/api/team` | List all members | `TeamMember[]` |
+Future fields likely needed:
 
-#### Calendar
-
-| Method | Path | Purpose | Response |
-|--------|------|---------|----------|
-| GET | `/api/calendar` | List cron jobs | `{ events: CalendarEvent[], lastSync: string }` |
-
-#### Memory
-
-| Method | Path | Purpose | Response |
-|--------|------|---------|----------|
-| GET | `/api/memory` | List memory files | `MemoryFile[]` |
-| | | Query: `?q=search&content=true` | |
-
-#### Activity
-
-| Method | Path | Purpose | Response |
-|--------|------|---------|----------|
-| GET | `/api/activity` | List recent activity | `ActivityLog[]` (last 50) |
-| GET | `/api/activity/stream` | SSE event stream | `text/event-stream` |
-
-### New Endpoints Required
-
-#### Team CRUD (Phase 1 completion)
-
-| Method | Path | Purpose | Request Body |
-|--------|------|---------|-------------|
-| POST | `/api/team` | Create member | `{ name, memberType, emoji, role, runtime, specialties, description }` |
-| PATCH | `/api/team/:id` | Update member | Partial `TeamMember` fields |
-| DELETE | `/api/team/:id` | Delete member | — |
-
-#### Settings (Phase 2)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/settings` | Get all settings |
-| PATCH | `/api/settings` | Update settings `{ key: value, ... }` |
-
-#### Agent Operations (Phase 2)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/api/agents/import` | Import agents from openclaw.json |
-| POST | `/api/agents/:id/dispatch` | Manually dispatch a prompt to an agent |
-| GET | `/api/agents/:id/sessions` | List agent sessions from gateway |
-
-#### Content Pipeline (Phase 2)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/content` | List content items |
-| POST | `/api/content` | Create content item |
-| PATCH | `/api/content/:id` | Update content item |
-| DELETE | `/api/content/:id` | Delete content item |
-
-#### Health & Status (Phase 2)
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/health` | Server health + gateway connection status |
-| GET | `/api/status` | Dashboard summary (task counts, agent statuses, next cron) |
+- assignee
+- priority
+- tags
+- source links
+- published URLs
+- related task ID
 
 ---
 
-## 11. UI/UX Specification
+## 10. API Surface
 
-### Design System
+### 10.1 Existing Core APIs
 
-- **Framework:** Nuxt UI v4 (built on Radix Vue + TailwindCSS v4)
-- **Theme:** Dark mode only (gray-950 background)
-- **Colors:** Primary = green, Neutral = slate
-- **Font:** Public Sans
-- **Icons:** Lucide (via @iconify-json/lucide)
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `PATCH /api/tasks/:id`
+- `PUT /api/tasks/:id`
+- `DELETE /api/tasks/:id`
+- `GET /api/tasks/:id/output`
+- `GET /api/team`
+- `POST /api/team`
+- `PATCH /api/team/:id`
+- `DELETE /api/team/:id`
+- `GET /api/activity`
+- `GET /api/activity/stream`
+- `GET /api/runtimes/health`
+- `GET /api/settings`
+- `PATCH /api/settings`
+- `GET /api/calendar`
+- `GET /api/memory`
 
-### Layout
+### 10.2 Desired APIs
 
-```
-┌──────────────────────────────────────────────────┐
-│ ┌──────────┐ ┌──────────────────────────────────┐│
-│ │ Sidebar  │ │        Main Content              ││
-│ │ (60px w) │ │                                   ││
-│ │          │ │                                   ││
-│ │ 🦅 Logo  │ │  (Page content rendered here)    ││
-│ │          │ │                                   ││
-│ │ 📋 Tasks │ │                                   ││
-│ │ 📅 Cal   │ │                                   ││
-│ │ 🎬 Cont  │ │                                   ││
-│ │ 🧠 Mem   │ │                                   ││
-│ │ 👥 Team  │ │                                   ││
-│ │ 🏢 Office│ │                                   ││
-│ │          │ │                                   ││
-│ │ ● Live   │ │                                   ││
-│ └──────────┘ └──────────────────────────────────┘│
-└──────────────────────────────────────────────────┘
-```
-
-- **Sidebar:** Fixed left, 240px wide, dark gray-900 background
-- **Logo:** Top of sidebar — emoji + "Mission Control" + instance name
-- **Navigation:** Icon + label links with active state highlighting (primary color background)
-- **Live indicator:** Bottom of sidebar — shows optional OpenClaw gateway state without treating disabled gateway as fatal
-- **Main content:** Scrollable, padded (24px), gray-950 background
-
-### Page Specifications
-
-#### Tasks Page (`/tasks`)
-
-**Header:** "Tasks Board" title + task count + "New Task" button
-
-**Body:** Horizontal 4-column Kanban layout
-- Columns: To Do, In Progress, Review, Done
-- Each column: emoji header, label, count badge, droppable area
-- Cards: priority dot, assignee badge, title, description preview (2-line clamp), tags, creation date
-- Empty column: "No tasks" placeholder
-- Drag: ghost opacity 40%, slight rotation on drag, scale 105% on chosen
-
-**Interactions:**
-- Click "New Task" → modal with form
-- Drag card between columns → PATCH status
-- Hover card → context menu button appears
-- Click context menu → status transitions + delete option
-
-#### Team Page (`/team`)
-
-**Header:** "Team" title + member count + busy count
-
-**Body:** Responsive card grid (1/2/3 columns)
-- Each card: emoji avatar (large), name, role, status dot + label, description, specialty badges, runtime + usage stats footer
-- Status: green pulse = busy, blue = active, gray = idle
-
-**Phase 2 additions:**
-- "Add Member" button
-- Click card → edit modal
-- Delete button (with confirmation)
-- "Import from OpenClaw" button
-
-#### Calendar Page (`/calendar`)
-
-**Header:** "Calendar" title + "Sync" refresh button
-
-**Body:** List of cron jobs
-- Each row: status dot, job name, cron expression, next run time, status badge
-- Empty state: calendar-off icon + "No scheduled jobs found"
-
-**Phase 2 additions:**
-- Toggle between list and calendar grid view
-- Month/week/day navigation
-- Click job → detail panel with run history
-
-#### Memory Page (`/memory`)
-
-**Header:** "Memory" title + file count + search input
-
-**Body:** 2-column card grid
-- Each card: type emoji, filename, type badge, preview text (2-line clamp), modification date
-- Click card → modal with full content
-
-**Modal:** File name header, close button, monospace text content, scroll for long files
-
-**Phase 2 additions:**
-- Rendered markdown (not raw)
-- Edit button in modal
-- Save changes
-- Agent memory tabs (browse per-agent memory)
-
-#### Office Page (`/office`)
-
-**Header:** "Office" title + "Live view of your agents"
-
-**Body:** Grid floor with workstation cards
-- Background: subtle grid pattern (5% opacity lines)
-- Each workstation: bordered card, agent emoji (bouncing if busy), "monitor" div with activity bars or "idle" text, name, status
-- Busy agents: green border glow, ping indicator, animated bars in monitor
-
-#### Content Pipeline Page (`/content`) — Phase 2
-
-**Header:** "Content Pipeline" title + "New Content" button
-
-**Body:** 6-column Kanban (same pattern as Tasks)
-- Columns: Idea → Script → Thumbnail → Filming → Editing → Published
-- Cards: title, target platforms, assignee, dates
-
-#### Settings Page (`/settings`) — Phase 2
-
-**Sections:**
-- **Runtime Health:** Hermes/OpenClaw CLI availability, OpenClaw session configured/missing, optional gateway state
-- **Gateway:** URL, token (masked), connection status, test button
-- **Workspace:** Path, browse button
-- **Team:** Import from OpenClaw button, export config
-- **Appearance:** (future) Theme, language
-
-#### Activity Page (`/activity`) — Phase 2
-
-**Header:** "Activity" title + filter controls
-
-**Body:** Reverse-chronological timeline
-- Each entry: timestamp, actor emoji + name, action description, optional task link
-- Filters: by actor, by event type, date range
-- Infinite scroll (load 50 at a time)
+- `POST /api/tasks/:id/retry-dispatch`
+- `POST /api/team/:id/smoke-test`
+- `GET /api/status`
+- `GET /api/notifications/test-message`
+- `POST /api/content`
+- `PATCH /api/content/:id`
+- `DELETE /api/content/:id`
+- `POST /api/calendar/jobs`
+- `PATCH /api/calendar/jobs/:id`
 
 ---
 
-## 12. Technical Architecture
+## 11. UX Requirements
 
-### Stack Decisions
+### 11.1 Navigation
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| **Framework** | Nuxt 4 | Full-stack (client + server) in one project. SSR-capable. File-based routing. |
-| **UI Library** | Nuxt UI v4 | Native Nuxt integration. Radix Vue primitives. Built-in dark mode. TailwindCSS included. |
-| **Data Fetching** | TanStack Vue Query | Cache management, polling intervals, SSE-driven invalidation. Superior to raw `useFetch` for dynamic data. |
-| **State** | Pinia | Available but minimally used — TanStack Query handles most state. Pinia reserved for UI-only state (modals, drag state). |
-| **Database** | SQLite + Drizzle ORM | Local-first, zero-config, single-file database. Drizzle provides type-safe queries. No external DB required. |
-| **SQLite Driver** | better-sqlite3 | Synchronous API (simpler than async alternatives). WAL mode for concurrent reads. |
-| **Realtime** | WebSocket (ws) + SSE | WS for gateway communication (bidirectional). SSE for client broadcast (simple, HTTP-native, auto-reconnect). |
-| **Drag & Drop** | vue-draggable-plus | SortableJS wrapper for Vue 3. Mature, lightweight, good touch support. |
-| **Package Manager** | pnpm | Faster, disk-efficient, strict dependency resolution. |
+Sidebar should include:
 
-### Tradeoffs
+- Dashboard/Home
+- Tasks
+- Calendar
+- Content
+- Memory
+- Team
+- Office
+- Activity
+- Settings
 
-1. **SQLite vs PostgreSQL:** SQLite limits Mission Control to single-node deployments. This is intentional — Mission Control is a local tool, not a cloud service. If multi-user becomes a goal, PostgreSQL migration via Drizzle is straightforward (schema is the same).
+Runtime readiness should eventually be visible outside Settings.
 
-2. **SSE vs WebSocket (client):** SSE is simpler and auto-reconnects. The client only needs to receive events, never send. If bidirectional client communication is needed later, Nitro's experimental WebSocket support can be used.
+### 11.2 Tasks UX
 
-3. **better-sqlite3 vs libsql:** better-sqlite3 requires native compilation (node-gyp). This causes friction on some systems. Phase 3 should evaluate migrating to libsql (Turso's fork) which ships pre-built binaries and supports HTTP replication.
+Tasks page should emphasize:
 
-4. **Monolith vs Microservices:** Mission Control is a monolith by design. The server, database, and client ship as one unit. Splitting would add complexity without benefit for a local tool.
+- Review queue.
+- Active agent work.
+- Failed/retryable tasks.
+- Quick inspection of output.
 
-### Build & Deployment
+### 11.3 Settings UX
 
-```bash
-# Development
-pnpm dev                    # Nuxt dev server on :4000
+Settings should group:
 
-# Production (current)
-pnpm build                  # Produces .output/
-node .output/server/index.mjs  # Or: pnpm preview
+- Runtime health.
+- OpenClaw gateway.
+- Workspace.
+- Runtime providers.
+- Telegram notifications.
+- Dispatch prompt template.
 
-# Production (npm package, Phase 2)
-# Pre-built .output/ ships inside the npm package
-# CLI entry point starts the Nitro server directly
+Secrets must use password inputs and never be echoed in logs.
+
+### 11.4 Telegram Message UX
+
+Notification messages should follow this shape:
+
+```markdown
+🦅 **Task ready for review**
+**Task:** Draft Lisbon plan
+**Assignee:** HawkBot - Hermes
+**Runtime:** hermes
+**Inspect:** http://localhost:4000/tasks
 ```
 
-### Directory Structure (target)
+Rules:
 
-```
-hawkbot-mission-control/
-├── app/
-│   ├── pages/
-│   │   ├── index.vue          # Redirect to /tasks
-│   │   ├── tasks.vue          # Kanban board
-│   │   ├── calendar.vue       # Cron calendar
-│   │   ├── content.vue        # Content pipeline
-│   │   ├── memory.vue         # Memory browser
-│   │   ├── team.vue           # Team roster
-│   │   ├── office.vue         # Gamified view
-│   │   ├── activity.vue       # Activity timeline (Phase 2)
-│   │   └── settings.vue       # Settings (Phase 2)
-│   ├── components/
-│   │   ├── TaskCard.vue
-│   │   ├── TaskCreateModal.vue
-│   │   ├── TeamMemberCard.vue      # (Phase 2)
-│   │   ├── TeamMemberModal.vue     # (Phase 2)
-│   │   ├── OnboardingWizard.vue    # (Phase 2)
-│   │   ├── NavItem.vue
-│   │   └── AppLogo.vue
-│   ├── composables/
-│   │   └── useEventStream.ts
-│   ├── layouts/
-│   │   └── default.vue
-│   ├── plugins/
-│   │   └── vue-query.ts
-│   └── assets/css/
-│       └── main.css
-├── server/
-│   ├── api/
-│   │   ├── tasks/             # CRUD
-│   │   ├── team/              # CRUD (Phase 2: POST, PATCH, DELETE)
-│   │   ├── calendar/          # GET
-│   │   ├── memory/            # GET
-│   │   ├── activity/          # GET + SSE stream
-│   │   ├── content/           # CRUD (Phase 2)
-│   │   ├── settings/          # GET + PATCH (Phase 2)
-│   │   ├── agents/            # Import + dispatch (Phase 2)
-│   │   └── health/            # GET (Phase 2)
-│   ├── db/
-│   │   ├── schema.ts
-│   │   └── index.ts
-│   ├── plugins/
-│   │   ├── startup.ts
-│   │   └── autoWatcher.ts
-│   └── utils/
-│       ├── gateway.ts
-│       ├── dispatcher.ts
-│       ├── seed.ts            # Replaced by config-driven import
-│       └── openclaw-config.ts # (Phase 2) Read/write openclaw.json
-├── bin/
-│   └── mission-control.mjs   # CLI entry point (Phase 2)
-├── docs/
-│   └── PRD.md                 # This document
-├── data/                      # SQLite database (gitignored)
-├── .env.example
-├── nuxt.config.ts
-└── package.json
-```
+- No tables.
+- No raw stack traces unless explicitly useful and short.
+- No token/session values.
+- Short enough for mobile scanning.
 
 ---
 
-## 13. Phase Roadmap
+## 12. Roadmap
 
-### Phase 1: Foundation (Current — v1.0)
+### P0 — Baseline Already Completed
 
-**Status: 85% complete**
+- Runtime adapter foundation.
+- Hermes/OpenClaw/manual providers.
+- Runtime health endpoint/cards.
+- Activity page.
+- Task output drawer.
+- Dispatcher output capture.
+- Telegram lifecycle notifications.
+- Vitest test foundation.
 
-What exists:
-- ✅ Tasks Kanban with drag-and-drop
-- ✅ Auto-dispatch to agents
-- ✅ SSE real-time updates
-- ✅ Calendar (cron list view)
-- ✅ Memory browser with search
-- ✅ Team roster (read-only)
-- ✅ Office gamified view
-- ✅ Activity logging
-- ✅ Gateway WebSocket connection
-- ✅ SQLite + Drizzle ORM
-- ✅ TanStack Query data fetching
+### P1 — PRD and Roadmap Alignment
 
-What's missing to complete Phase 1:
-- [ ] **Remove hardcoded assignees** — Make assignee a dynamic field referencing team_members
-- [ ] **Dynamic TaskCreateModal** — Fetch team members for assignee dropdown
-- [ ] **Dynamic TaskCard** — Display assignee from team member data
-- [ ] **Config-driven seed** — Import agents from `openclaw.json` instead of hardcoded array
-- [ ] **Team CRUD endpoints** — POST, PATCH, DELETE for team members
-- [ ] **Team management UI** — Add/edit/delete members in the Team page
+Goal: make docs match product reality and create an implementation plan.
 
-**Milestone:** Any OpenClaw user can clone the repo, configure `.env`, run `pnpm dev`, and manage their own agents.
+Deliverables:
 
-### Phase 2: Distribution & Polish (v2.0)
+- Updated PRD.
+- Implementation roadmap plan.
+- README cleanup for stale roadmap items.
+- Optional reusable PRD skill.
 
-**Timeline: 4-6 weeks after Phase 1**
+### P2 — Operational Visibility Polish
 
-| Feature | Priority | Effort |
-|---------|----------|--------|
-| npm package with CLI launcher | P0 | 1 week |
-| First-run onboarding wizard | P0 | 3 days |
-| Auto-detect gateway config | P0 | 2 days |
-| Settings page | P1 | 3 days |
-| Activity page (dedicated timeline) | P1 | 3 days |
-| Markdown rendering in memory viewer | P1 | 2 days |
-| Memory file editing | P1 | 3 days |
-| Content pipeline (basic Kanban) | P2 | 1 week |
-| Calendar grid view | P2 | 1 week |
-| Agent config write-back to openclaw.json | P2 | 3 days |
-| Per-agent session IDs | P2 | 2 days |
-| Health endpoint + status dashboard widget | P2 | 2 days |
+Goal: make runtime/task health visible at a glance.
 
-**Milestone:** `npx hawkbot-mission-control` works out of the box. First-time users complete setup in under 2 minutes.
+Candidate deliverables:
 
-### Phase 3: Scale & Community (v3.0)
+- Runtime health badges in sidebar/header.
+- Review/failure count badges.
+- Activity filters.
+- Retry dispatch action.
+- Notification delivery logging.
 
-**Timeline: 8-12 weeks after Phase 2**
+### P3 — Content Pipeline MVP
 
-| Feature | Priority | Effort |
-|---------|----------|--------|
-| Docker Compose deployment | P1 | 1 week |
-| Agent templates (one-click role setup) | P1 | 1 week |
-| Shared space browser UI | P1 | 3 days |
-| Multi-agent memory browsing | P2 | 1 week |
-| Notification integrations (Telegram, Discord) | P2 | 1 week |
-| Task dependencies (blocked-by) | P2 | 3 days |
-| Task templates / recurring tasks | P2 | 3 days |
-| libsql migration (drop node-gyp requirement) | P2 | 3 days |
-| Plugin system for custom pages | P3 | 2 weeks |
+Goal: turn placeholder content page into usable workflow.
 
-**Milestone:** Mission Control is the go-to dashboard for multi-agent OpenClaw setups.
+Candidate deliverables:
 
----
+- Content item CRUD.
+- Content Kanban columns.
+- Stage transitions.
+- Link content items to tasks.
+- Basic script/asset/published URL fields.
 
-## 14. Non-Goals
+### P4 — Scheduler and Briefing Control
 
-Mission Control explicitly does **NOT** aim to be:
+Goal: manage proactive workflows from the dashboard.
 
-1. **A chat interface** — It does not provide a conversational UI for interacting with agents. That's what Discord, Telegram, and the terminal are for. Mission Control is for oversight and coordination, not conversation.
+Candidate deliverables:
 
-2. **A code editor** — It does not embed Monaco/CodeMirror for editing code. Agents have their own workspaces and tools for that.
+- Hermes cron job listing.
+- Delivery target display.
+- Run history.
+- Pause/resume/run actions.
+- Morning briefing configuration surface.
 
-3. **A model playground** — It does not let you test prompts or compare model outputs. Runtime model selection belongs to Hermes/OpenClaw configuration, not Mission Control.
+### P5 — Deployment and Packaging
 
-4. **A cloud service** — It runs locally on the user's machine. There is no hosted version, no user accounts, no multi-tenant architecture. One instance = one user.
+Goal: make Mission Control easier to run consistently.
 
-5. **An OpenClaw replacement** — It depends on OpenClaw. It doesn't duplicate gateway functionality or implement its own agent runtime.
+Candidate deliverables:
 
-6. **A general-purpose project management tool** — It's not Jira, Linear, or Trello. It's specifically for AI agent coordination. Features like sprints, story points, or team velocity are out of scope.
-
-7. **A monitoring/observability platform** — It shows agent status and activity, but it's not Datadog. No metrics aggregation, no alerting rules, no historical analytics beyond the activity log.
-
-8. **Multi-user/multi-tenant** — One Mission Control instance serves one user. There's no login system, no role-based access control, no shared dashboards. If two people want Mission Control, they each run their own instance.
+- Docker Compose.
+- Production preview docs.
+- Environment validation.
+- Backup/restore notes for SQLite.
 
 ---
 
-## 15. Success Metrics
+## 13. Success Metrics
 
-### Adoption Metrics
+Operational metrics:
 
-| Metric | Target (6 months) | Measurement |
-|--------|-------------------|-------------|
-| npm weekly downloads | 100+ | npm registry stats |
-| GitHub stars | 200+ | GitHub API |
-| Active issues/PRs from community | 10+ | GitHub |
-| Forks | 20+ | GitHub |
+- Time from task creation to dispatch under 1 second for available agent runtimes.
+- Runtime failures visible in Activity within 1 second.
+- Task output inspectable in one click from the board.
+- Health checks complete within 5 seconds.
 
-### Usage Metrics (per-instance, opt-in telemetry)
+Quality metrics:
 
-| Metric | Healthy Signal | Source |
-|--------|---------------|--------|
-| Tasks created per week | ≥ 5 | SQLite query |
-| Tasks dispatched to agents | ≥ 3/week | Activity log |
-| Active agents | ≥ 2 | Team table |
-| Dashboard open time | ≥ 30 min/day | Client-side (Phase 3) |
-| SSE connection uptime | ≥ 95% | Server-side |
+- `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass before each pushed feature.
+- New pure utilities have Vitest coverage.
+- Telegram-facing messages are checked for simple Markdown.
 
-### Quality Metrics
+Product metrics:
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Time to first task dispatched (new user) | < 5 minutes | Onboarding flow timing |
-| `npx` cold start time | < 15 seconds | CI benchmark |
-| Page load time | < 2 seconds | Lighthouse |
-| Dispatch latency (task created → agent spawned) | < 3 seconds | Activity log timestamps |
-| SSE event delivery | < 500ms | Client-side measurement |
-| Zero critical bugs in production | 0 P0 bugs open | GitHub issues |
-
-### Qualitative Success
-
-- OpenClaw documentation links to Mission Control as the recommended dashboard
-- Users create blog posts or tweets about their multi-agent setups using Mission Control
-- At least one community contribution (feature PR, not just bug fixes)
-- Eduardo uses it daily for his own multi-agent workflow without reaching for the terminal
+- Eduardo can understand current agent state within 10 seconds of opening the app.
+- Eduardo can identify tasks needing review without reading logs.
+- At least one real daily workflow is managed end-to-end through Mission Control.
 
 ---
 
-## Appendix: Current State Analysis
+## 14. Risks and Tradeoffs
 
-### What's Built and Working
+### 14.1 Runtime Coupling
 
-| Component | Status | Quality |
-|-----------|--------|---------|
-| Kanban board | ✅ Complete | Good — drag-and-drop works, SSE invalidation, priority badges |
-| Auto-dispatch | ✅ Complete | Good — immediate dispatch + 5-min sweeper fallback |
-| Gateway WebSocket | ✅ Complete | Good — auto-reconnect, SSE bridge |
-| SSE composable | ✅ Complete | Excellent — singleton, ref-counted, clean lifecycle |
-| Activity logging | ✅ Complete | Good — all mutations logged |
-| Calendar (list) | ✅ Complete | Basic — reads cron jobs from gateway CLI |
-| Memory browser | ✅ Complete | Good — search, file viewer, categorization |
-| Team display | ✅ Complete | Read-only — no CRUD |
-| Office view | ✅ Complete | Fun — animated workstations |
-| Database layer | ✅ Complete | Good — WAL mode, auto-migrations, Drizzle ORM |
-| Content pipeline | ❌ Placeholder | Schema exists, UI is "Coming Phase 2" |
+Risk: UI accidentally becomes tied to Hermes or OpenClaw details.
 
-### Critical Gaps for Distribution
+Mitigation:
 
-1. **Hardcoded identities**: Assignee is `'eduardo' | 'hawkbot'` — must become dynamic team member references
-2. **Hardcoded team seed**: `DEFAULT_TEAM` in `seed.ts` contains Eduardo's specific agents — must be replaced with config-driven import
-3. **No Team CRUD**: Can't add, edit, or delete team members via UI or API
-4. **No settings management**: Gateway URL, token, workspace path only configurable via `.env` — needs a settings page
-5. **No onboarding**: New users get a blank dashboard with no guidance
-6. **No npm packaging**: Can't install via `npx` — requires cloning the repo
-7. **Hardcoded session ID**: `MAIN_SESSION_ID` in `dispatcher.ts` is a UUID literal — must be configurable
-8. **Hardcoded dispatch prompt language**: Prompt is partially in Portuguese ("Agente", "Especialidades") — should be English by default
-9. **No health check**: No way to verify gateway connection status from the UI beyond the sidebar indicator
+- Keep provider-specific logic in adapters and health utilities.
+- Store generic runtime metadata in activity logs.
 
-### Code Quality Assessment
+### 14.2 Notification Noise
 
-- **TypeScript strictness**: Good — strict typing, interfaces defined, minimal `any`
-- **Component quality**: Good — Composition API, proper props/emits, clean templates
-- **API design**: Consistent — method-suffixed files, Drizzle ORM, JSON responses
-- **Error handling**: Basic — try/catch in gateway, no user-facing error messages
-- **Testing**: None — no unit tests, no integration tests, no e2e tests
-- **Documentation**: Good — README.md and CLAUDE.md are comprehensive
+Risk: Telegram alerts become spammy.
 
-### Recommended Priority for Closing Gaps
+Mitigation:
 
-1. **P0**: Remove hardcoded assignees (schema + TaskCreateModal + TaskCard)
-2. **P0**: Config-driven agent import (replace seed.ts)
-3. **P0**: Team CRUD endpoints + UI
-4. **P1**: Settings page + configurable session ID
-5. **P1**: npm package with CLI launcher
-6. **P1**: Onboarding wizard
-7. **P2**: Content pipeline
-8. **P2**: Calendar grid view
-9. **P3**: Docker Compose
-10. **P3**: Agent templates
+- Default notifications off globally.
+- Keep done notifications off by default.
+- Add per-event toggles and possibly quiet hours later.
+
+### 14.3 Local State Ephemerality
+
+Risk: Cleanup removes DB state used for debugging.
+
+Mitigation:
+
+- Treat smoke-test task IDs as ephemeral.
+- Use Activity/output evidence before cleanup.
+- Consider optional export before cleanup for important sessions.
+
+### 14.4 Long-Running Runtime Processes
+
+Risk: Detached child processes outlive expected task state or fail silently.
+
+Mitigation:
+
+- Capture close/error events.
+- Record duration and output tails.
+- Add future process registry or heartbeat if needed.
 
 ---
 
-## Implementation Checklist (Ralph Loop)
+## 15. Open Questions
 
-> This checklist is designed for autonomous agent execution via a Ralph loop.
-> Each item is atomic, implementable independently, and ends with a commit.
-> Run `ralph-once.sh` to pick the next unchecked item, implement it, commit, and update `progress.txt`.
+1. Should notification delivery eventually use the Hermes gateway `send_message` equivalent directly instead of spawning `hermes chat`?
+2. Should Mission Control manage Hermes cron jobs directly, or only display them?
+3. Should content pipeline items be separate from tasks or become a specialized task type?
+4. Should runtime health appear in the sidebar or dashboard home page first?
+5. Should local SQLite state get export/import before cleanup?
+6. Should PRD/planning workflows live in a dedicated Mission Control skill?
 
-### Phase 1 — Make It Distributable (P0/P1)
+---
 
-- [x] **P0-1**: Remove hardcoded assignee enum from schema
-  - `server/db/schema.ts`: change `assignee` from `'eduardo' | 'hawkbot'` to `text('assignee')` referencing `team.id`
-  - `server/api/tasks/index.get.ts`: update query joins
-  - `app/components/tasks/TaskCreateModal.vue`: replace hardcoded options with dynamic team fetch
-  - `app/components/tasks/TaskCard.vue`: update assignee display to use team member name/avatar
+## 16. Implementation Method
 
-- [x] **P0-2**: Replace hardcoded DEFAULT_TEAM seed with config-driven import
-  - `server/utils/seed.ts`: read `~/.openclaw/openclaw.json`, parse `agents.list` + `identity` fields
-  - Fall back to a minimal default (one human "owner" + one "assistant" agent) if config not found
-  - Re-seed only if team table is empty; never overwrite existing records
+Use this skill stack for future development:
 
-- [x] **P0-3**: Add Team CRUD API endpoints
-  - `server/api/team/index.post.ts`: create team member (name, type, role, runtime, specialties, agentId)
-  - `server/api/team/[id].patch.ts`: update team member fields
-  - `server/api/team/[id].delete.ts`: soft-delete (set `active = false`)
-  - Validate: `type` must be `human | agent`; `agentId` must be unique if provided
+- `agent-dashboard-development` for dashboard-specific patterns.
+- `reporting` for structured PRD/report deliverables.
+- `writing-plans` for implementation plans.
+- `test-driven-development` for utility/API behavior changes.
+- `subagent-driven-development` for executing plan tasks with review gates.
+- `requesting-code-review` before final commit.
+- `hermes-agent` for Hermes runtime/gateway/cron details.
 
-- [x] **P0-4**: Add Team management UI
-  - New page `app/pages/team/index.vue`: list all team members with edit/delete actions
-  - Modal `app/components/team/TeamMemberModal.vue`: form for create/edit
-  - Integrate with TanStack Query (invalidate on mutation)
+Default execution policy:
 
-- [x] **P1-1**: Create Settings page
-  - `app/pages/settings/index.vue`: form with Gateway URL, Gateway Token, Workspace Path, Main Session ID
-  - `server/api/settings/index.get.ts` + `index.patch.ts`: read/write to a `settings` table in SQLite
-  - On save, validate gateway connectivity (ping `/api/health` on the gateway)
-  - `server/db/schema.ts`: add `settings` table (`key text PK`, `value text`, `updatedAt`)
-
-- [x] **P1-2**: Make MAIN_SESSION_ID configurable
-  - `server/utils/dispatcher.ts`: replace hardcoded UUID with a lookup to `settings` table key `main_session_id`
-  - If not set, log a warning and skip dispatch (don't fail silently)
-
-- [x] **P1-3**: Fix hardcoded Portuguese in dispatch prompt
-  - `server/utils/dispatcher.ts`: translate dispatch prompt to English
-  - Make prompt template a configurable string in `settings` table (key: `dispatch_prompt_template`)
-
-- [x] **P1-4**: Add gateway health check indicator
-  - `server/api/gateway/health.get.ts`: probe gateway WebSocket/HTTP and return `{ connected: boolean, latencyMs: number }`
-  - `app/layouts/default.vue`: replace static sidebar indicator with live poll (every 30s via TanStack Query)
-
-- [x] **P1-5**: Add npm package entry point and CLI launcher
-  - Add `bin/hawkbot-mission-control.js` — checks Node version, copies `.env.example` if no `.env`, runs `nuxt preview` (or `nuxt dev` if `--dev` flag)
-  - `package.json`: add `"bin": { "hawkbot-mission-control": "bin/hawkbot-mission-control.js" }`
-  - Test: `npx hawkbot-mission-control` should start the app on port 4000
-
-- [ ] **P1-6**: Add onboarding wizard
-  - `app/pages/onboarding/index.vue`: 4-step wizard (Welcome → Connect Gateway → Configure Workspace → Meet Your Team)
-  - Step 2: input Gateway URL + Token, validate live, save to settings
-  - Step 3: input Workspace path, validate it exists, save to settings
-  - Step 4: show auto-imported team from OpenClaw config, allow manual additions
-  - Redirect to `/onboarding` on first launch (detect via empty `settings` table)
-
-### Phase 2 — Feature Complete (P2)
-
-- [ ] **P2-1**: Content Pipeline — database and API
-  - `server/db/schema.ts`: verify `contentItems` table has all required fields (title, status, type, assigneeId, scriptUrl, thumbnailUrl, publishedUrl, metadata)
-  - `server/api/content/index.get.ts` + `index.post.ts`: list and create content items
-  - `server/api/content/[id].patch.ts` + `[id].delete.ts`: update status/fields, soft-delete
-
-- [ ] **P2-2**: Content Pipeline — UI
-  - `app/pages/content/index.vue`: Kanban board (Idea → Script → Thumbnail → Published)
-  - Reuse `TaskCard` pattern; add content-specific fields (type badge, thumbnail preview)
-  - Drag-and-drop status transitions via vue-draggable-plus (same as Tasks)
-
-- [ ] **P2-3**: Calendar grid view
-  - `app/pages/calendar/index.vue`: upgrade from list view to monthly grid (use `@fullcalendar/vue3` or build custom with CSS grid)
-  - Show cron jobs as recurring events; show one-shot `at` jobs as single events
-  - Click event → show cron job details (name, schedule, last run, next run)
-
-- [ ] **P2-4**: Telegram/Discord notifications on task status change
-  - `server/plugins/notifications.ts`: watch for task `status` transitions to `done` or `review`
-  - Send notification via OpenClaw Gateway message API (POST to gateway `/api/message`)
-  - Configurable: notification channel settable per team member in settings
-
-### Phase 3 — Distribution Polish (P3)
-
-- [ ] **P3-1**: Docker Compose setup
-  - `docker-compose.yml`: service for `hawkbot-mission-control` with volume mounts for `~/.openclaw` and SQLite data
-  - `Dockerfile`: multi-stage build (build → runtime), non-root user, health check
-  - Document in README: `docker compose up -d` one-liner
-
-- [ ] **P3-2**: Agent templates library
-  - `server/data/agent-templates.ts`: array of template definitions (Fullstack Dev, System Architect, Research, Ops, Writer)
-  - Each template: `{ id, name, role, runtime, specialties, systemPromptFile, suggestedTools }`
-  - `server/api/agent-templates/index.get.ts`: return available templates
-  - `app/pages/team/index.vue`: "Add from template" button in Team UI → opens template picker modal
-
-- [ ] **P3-3**: OpenClaw config generator
-  - `server/api/openclaw/export-config.get.ts`: generate `agents.list` YAML/JSON from current team table
-  - `app/pages/settings/index.vue`: "Export to OpenClaw" button → downloads generated config snippet
-  - Include instructions for merging into `~/.openclaw/openclaw.json`
-
-- [ ] **P3-4**: Shared space filesystem browser
-  - `server/api/shared/index.get.ts`: list files in configured shared space directory
-  - `server/api/shared/[...path].get.ts`: read file content
-  - `app/pages/shared/index.vue`: file tree with viewer (reuse Memory browser pattern)
-  - Configurable shared space path in settings (default: `{workspace}/../shared`)
-
+1. Inspect current repo state.
+2. Write/refresh PRD or plan.
+3. Create bite-sized tasks.
+4. Implement with tests first where practical.
+5. Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
+6. Smoke test runtime behavior when relevant.
+7. Commit and push.
+8. Clean local `node_modules` and SQLite DB files when requested.
