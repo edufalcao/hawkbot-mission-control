@@ -61,8 +61,10 @@
         />
       </nav>
 
-      <!-- Live indicator -->
-      <div class="px-4 py-3 border-t border-gray-800">
+      <!-- Runtime health and live indicator -->
+      <div class="px-4 py-3 border-t border-gray-800 space-y-3">
+        <RuntimeHealthBadge :summary="runtimeSummary" />
+
         <div class="flex items-center gap-2 text-xs text-gray-400">
           <span
             class="w-2 h-2 rounded-full"
@@ -82,6 +84,7 @@
 
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query';
+import { summarizeRuntimeHealth, type RuntimeHealthReport } from '../utils/runtimeStatus';
 
 interface GatewayHealth {
   connected: boolean,
@@ -95,6 +98,14 @@ const { data: health, status } = useQuery<GatewayHealth>({
   queryFn: () => $fetch('/api/gateway/health'),
   refetchInterval: 30_000
 });
+
+const { data: runtimeHealth } = useQuery<RuntimeHealthReport>({
+  queryKey: ['runtime-health'],
+  queryFn: () => $fetch('/api/runtimes/health'),
+  refetchInterval: 30_000
+});
+
+const runtimeSummary = computed(() => summarizeRuntimeHealth(runtimeHealth.value));
 
 // Show green while loading (assume connected) — only show red after a fetch confirms disconnected
 const gatewayConnected = computed(() => status.value === 'pending' || health.value?.connected === true);
