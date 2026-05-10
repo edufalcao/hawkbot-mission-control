@@ -4,6 +4,7 @@ import { tasks, teamMembers, activityLog, settings } from '../db/schema';
 import type { useDb } from '../db';
 import { broadcastToClients } from './gateway';
 import { getRuntimeAdapter } from './runtimes';
+import { sendTaskNotification } from './notifications';
 import type { RuntimeAgent, RuntimeProvider, RuntimeSettings } from './runtimes/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -122,6 +123,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
     const message = err instanceof Error ? err.message : 'Unknown runtime adapter error';
     console.error(`[dispatcher] Failed to build spawn plan for "${task.title}": ${message}`);
     revertDispatch(task, db, `Task "${task.title}" dispatch failed before spawn`, { provider, error: message });
+    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: message }, settingsMap);
     return;
   }
 
@@ -167,6 +169,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
       stdoutTail: tailOutput(stdoutChunks),
       stderrTail: tailOutput(stderrChunks)
     });
+    sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: err.message }, settingsMap);
   });
 
   child.on('close', (code) => {
@@ -206,6 +209,7 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
         stdoutTail,
         stderrTail
       });
+      sendTaskNotification({ event: 'failure', taskTitle: task.title, taskId: task.id, assigneeName: agent.name, provider, error: `Exited with status ${code}` }, settingsMap);
     }
   });
 }

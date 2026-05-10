@@ -11,6 +11,11 @@ const ALLOWED_KEYS = [
   'default_runtime_provider',
   'hermes_default_profile',
   'hermes_worktree_mode',
+  'telegram_notifications_enabled',
+  'notify_on_review',
+  'notify_on_failure',
+  'notify_on_done',
+  'notification_hermes_profile',
   'dispatch_prompt_template'
 ];
 

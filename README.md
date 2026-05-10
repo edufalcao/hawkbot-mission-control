@@ -31,6 +31,7 @@ Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 - **Content Pipeline** — *(Phase 2)* Content creation pipeline: Idea → Script → Thumbnail → Published.
 - **Activity** — Runtime/task audit log with captured dispatch metadata, stdout/stderr tails, and SSE updates.
 - **Runtime Health** — Settings badges for Hermes/OpenClaw CLI availability, gateway state, and required runtime configuration.
+- **Telegram Notifications** — Optional Hermes-powered alerts for review, failure, and completion events.
 
 ---
 
@@ -164,6 +165,7 @@ docker compose up -d
 - [x] Runtime health badges for Hermes and OpenClaw
 - [x] Dispatch observability (duration, exit code, stdout/stderr tails)
 - [x] Task output drawer for review/debugging
+- [x] Telegram lifecycle notifications for review/failure/done
 - [x] Agent busy/idle usage and success stats
 - [x] Drag-and-drop on Kanban (SortableJS via vue-draggable-plus)
 - [x] SSE-driven dashboard updates (replaced polling)

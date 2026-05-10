@@ -1,9 +1,17 @@
 import { useDb } from '../../db';
-import { tasks, activityLog, teamMembers } from '../../db/schema';
+import { tasks, activityLog, teamMembers, settings } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { broadcastToClients } from '../../utils/gateway';
 import { dispatchTask } from '../../utils/dispatcher';
+import { sendTaskNotification } from '../../utils/notifications';
 import { v4 as uuidv4 } from 'uuid';
+
+async function getSettingsMap(db: ReturnType<typeof useDb>) {
+  const rows = await db.select().from(settings);
+  const settingsMap: Record<string, string> = {};
+  for (const row of rows) settingsMap[row.key] = row.value;
+  return settingsMap;
+}
 
 export default defineEventHandler(async (event) => {
   const db = useDb();
@@ -49,6 +57,17 @@ export default defineEventHandler(async (event) => {
   };
   await db.insert(activityLog).values(logEntry);
   broadcastToClients({ event: 'task_updated', task: { ...updated, tags: JSON.parse(updated.tags || '[]') }, log: logEntry });
+
+  if (body.status === 'review' || body.status === 'done') {
+    const settingsMap = await getSettingsMap(db);
+    sendTaskNotification({
+      event: body.status === 'done' ? 'done' : 'review',
+      taskTitle: updated.title,
+      taskId: updated.id,
+      assigneeName: actorName,
+      provider: member?.runtimeProvider || 'manual'
+    }, settingsMap);
+  }
 
   // Dispatch if task was moved (back) to todo
   if (body.status === 'todo') {

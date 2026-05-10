@@ -195,6 +195,68 @@
 
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <span class="i-lucide-bell w-5 h-5" />
+          Telegram Notifications
+        </h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Notifications</label>
+              <USelect
+                v-model="form.telegram_notifications_enabled"
+                :items="booleanOptions"
+                size="lg"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Sends lifecycle alerts through Hermes to Telegram.
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Notification Hermes Profile</label>
+              <UInput
+                v-model="form.notification_hermes_profile"
+                placeholder="Leave blank to use Hermes default"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">On Review</label>
+              <USelect
+                v-model="form.notify_on_review"
+                :items="booleanOptions"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">On Failure</label>
+              <USelect
+                v-model="form.notify_on_failure"
+                :items="booleanOptions"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">On Done</label>
+              <USelect
+                v-model="form.notify_on_done"
+                :items="booleanOptions"
+                size="lg"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span class="i-lucide-send w-5 h-5" />
           Task Dispatch
         </h2>
@@ -288,6 +350,11 @@ const form = reactive({
   default_runtime_provider: 'openclaw',
   hermes_default_profile: '',
   hermes_worktree_mode: 'false',
+  telegram_notifications_enabled: 'false',
+  notify_on_review: 'true',
+  notify_on_failure: 'true',
+  notify_on_done: 'false',
+  notification_hermes_profile: '',
   dispatch_prompt_template: ''
 });
 
@@ -345,6 +412,11 @@ watch(data, (val) => {
     form.default_runtime_provider = val.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = val.hermes_default_profile || '';
     form.hermes_worktree_mode = val.hermes_worktree_mode || 'false';
+    form.telegram_notifications_enabled = val.telegram_notifications_enabled || 'false';
+    form.notify_on_review = val.notify_on_review || 'true';
+    form.notify_on_failure = val.notify_on_failure || 'true';
+    form.notify_on_done = val.notify_on_done || 'false';
+    form.notification_hermes_profile = val.notification_hermes_profile || '';
     form.dispatch_prompt_template = val.dispatch_prompt_template || '';
   }
 }, { immediate: true });
@@ -358,6 +430,11 @@ const hasChanges = computed(() => {
     || form.default_runtime_provider !== (data.value.default_runtime_provider || 'openclaw')
     || form.hermes_default_profile !== (data.value.hermes_default_profile || '')
     || form.hermes_worktree_mode !== (data.value.hermes_worktree_mode || 'false')
+    || form.telegram_notifications_enabled !== (data.value.telegram_notifications_enabled || 'false')
+    || form.notify_on_review !== (data.value.notify_on_review || 'true')
+    || form.notify_on_failure !== (data.value.notify_on_failure || 'true')
+    || form.notify_on_done !== (data.value.notify_on_done || 'false')
+    || form.notification_hermes_profile !== (data.value.notification_hermes_profile || '')
     || form.dispatch_prompt_template !== (data.value.dispatch_prompt_template || '');
 });
 
@@ -370,6 +447,11 @@ function resetForm() {
     form.default_runtime_provider = data.value.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = data.value.hermes_default_profile || '';
     form.hermes_worktree_mode = data.value.hermes_worktree_mode || 'false';
+    form.telegram_notifications_enabled = data.value.telegram_notifications_enabled || 'false';
+    form.notify_on_review = data.value.notify_on_review || 'true';
+    form.notify_on_failure = data.value.notify_on_failure || 'true';
+    form.notify_on_done = data.value.notify_on_done || 'false';
+    form.notification_hermes_profile = data.value.notification_hermes_profile || '';
     form.dispatch_prompt_template = data.value.dispatch_prompt_template || '';
   }
   saveMessage.value = '';
@@ -390,6 +472,11 @@ async function saveSettings() {
         default_runtime_provider: form.default_runtime_provider,
         hermes_default_profile: form.hermes_default_profile,
         hermes_worktree_mode: form.hermes_worktree_mode,
+        telegram_notifications_enabled: form.telegram_notifications_enabled,
+        notify_on_review: form.notify_on_review,
+        notify_on_failure: form.notify_on_failure,
+        notify_on_done: form.notify_on_done,
+        notification_hermes_profile: form.notification_hermes_profile,
         ...(form.dispatch_prompt_template ? { dispatch_prompt_template: form.dispatch_prompt_template } : {})
       }
     });
