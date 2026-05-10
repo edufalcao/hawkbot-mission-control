@@ -29,6 +29,14 @@
         </UFormField>
 
         <div class="grid grid-cols-2 gap-4">
+          <UFormField label="Delegate via">
+            <USelect
+              v-model="form.runtimeProvider"
+              :items="runtimeProviderOptions"
+              class="w-full"
+            />
+          </UFormField>
+
           <UFormField label="Assignee">
             <USelect
               v-model="form.assignee"
@@ -36,6 +44,17 @@
               class="w-full"
             />
           </UFormField>
+
+          <p class="col-span-2 text-xs text-gray-500 -mt-2">
+            Runtime is configured on the selected team member. Pick Hermes/OpenClaw here to filter available agents.
+          </p>
+
+          <p
+            v-if="runtimeWarning"
+            class="col-span-2 text-xs text-amber-400 -mt-2"
+          >
+            {{ runtimeWarning }}
+          </p>
 
           <UFormField label="Priority">
             <USelect
@@ -92,7 +111,8 @@ interface TeamMember {
   id: string,
   name: string,
   emoji: string,
-  memberType: string
+  memberType: string,
+  runtimeProvider?: 'openclaw' | 'hermes' | 'manual' | null
 }
 
 const open = defineModel<boolean>();
@@ -105,6 +125,7 @@ const tagsInput = ref('');
 const form = reactive({
   title: '',
   description: '',
+  runtimeProvider: 'any' as 'any' | 'openclaw' | 'hermes' | 'manual',
   assignee: '',
   priority: 'none'
 });
@@ -114,19 +135,51 @@ const { data: teamData } = useQuery({
   queryFn: () => $fetch<TeamMember[]>('/api/team')
 });
 
+const runtimeProviderOptions = [
+  { label: 'Any runtime', value: 'any' },
+  { label: 'Hermes agents', value: 'hermes' },
+  { label: 'OpenClaw agents', value: 'openclaw' },
+  { label: 'Manual / human', value: 'manual' }
+];
+
+function effectiveRuntime(member: TeamMember) {
+  if (member.memberType === 'human') return 'manual';
+  return member.runtimeProvider || 'openclaw';
+}
+
+function runtimeLabel(provider: string) {
+  if (provider === 'hermes') return 'Hermes';
+  if (provider === 'manual') return 'Manual';
+  return 'OpenClaw';
+}
+
+const filteredMembers = computed(() => {
+  const members = teamData.value || [];
+  if (form.runtimeProvider === 'any') return members;
+  return members.filter(m => effectiveRuntime(m) === form.runtimeProvider);
+});
+
+const runtimeWarning = computed(() => {
+  if (form.runtimeProvider === 'any' || filteredMembers.value.length > 0) return '';
+  return `No ${runtimeLabel(form.runtimeProvider)} assignees found. Add/configure one in Team first.`;
+});
+
 const assigneeOptions = computed(() => {
-  if (!teamData.value) return [];
-  return teamData.value.map(m => ({
-    label: `${m.emoji} ${m.name}`,
+  return filteredMembers.value.map(m => ({
+    label: `${m.emoji} ${m.name} · ${runtimeLabel(effectiveRuntime(m))}`,
     value: m.id
   }));
 });
 
-// Set default assignee when team data loads
-watch(teamData, (members) => {
-  if (members?.length && !form.assignee) {
+// Set default assignee when team data or runtime filter changes
+watch([teamData, () => form.runtimeProvider], () => {
+  const members = filteredMembers.value;
+  const currentStillVisible = members.some(m => m.id === form.assignee);
+  if (members.length && (!form.assignee || !currentStillVisible)) {
     const firstHuman = members.find(m => m.memberType === 'human');
     form.assignee = firstHuman?.id ?? members[0]!.id;
+  } else if (!members.length) {
+    form.assignee = '';
   }
 }, { immediate: true });
 
@@ -164,8 +217,9 @@ async function submit() {
 function resetForm() {
   form.title = '';
   form.description = '';
+  form.runtimeProvider = 'any';
   // Reset assignee to default (first human member)
-  const members = teamData.value;
+  const members = filteredMembers.value;
   if (members?.length) {
     const firstHuman = members.find(m => m.memberType === 'human');
     form.assignee = firstHuman?.id ?? members[0]!.id;

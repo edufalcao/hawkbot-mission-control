@@ -13,7 +13,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    gatewayUrl: process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789',
+    gatewayEnabled: process.env.OPENCLAW_GATEWAY_ENABLED === undefined ? Boolean(process.env.OPENCLAW_GATEWAY_URL) : process.env.OPENCLAW_GATEWAY_ENABLED === 'true',
+    gatewayRetry: process.env.OPENCLAW_GATEWAY_RETRY === 'true',
+    gatewayUrl: process.env.OPENCLAW_GATEWAY_URL || '',
     gatewayToken: process.env.OPENCLAW_GATEWAY_TOKEN || '',
     dbPath: process.env.DATABASE_PATH || './data/mission-control.db',
     workspacePath: process.env.WORKSPACE_PATH || `${process.env.HOME}/.openclaw/workspace`,

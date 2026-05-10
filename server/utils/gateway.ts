@@ -8,6 +8,8 @@ let _connected = false;
 let _connectedAt: number | null = null;
 let _lastPingAt: number | null = null;
 let _latencyMs: number | null = null;
+let _status: 'disabled' | 'idle' | 'connecting' | 'connected' | 'unavailable' = 'idle';
+let _lastError: string | null = null;
 
 export function isGatewayConnected(): boolean {
   return _connected;
@@ -16,6 +18,8 @@ export function isGatewayConnected(): boolean {
 export function getGatewayHealth() {
   return {
     connected: _connected,
+    status: _status,
+    lastError: _lastError,
     latencyMs: _latencyMs,
     connectedAt: _connectedAt ? new Date(_connectedAt).toISOString() : null,
     uptimeMs: _connectedAt && _connected ? Date.now() - _connectedAt : null
@@ -69,6 +73,8 @@ function handleGatewayMessage(data: WebSocket.RawData, token: string) {
     // Handle successful handshake response
     if (msg.type === 'res' && msg.ok && msg.payload?.type === 'hello-ok') {
       _connected = true;
+      _status = 'connected';
+      _lastError = null;
       _connectedAt = Date.now();
       console.log(`[gateway] Handshake complete (protocol ${msg.payload.protocol}, server ${msg.payload.server?.version})`);
       return;
@@ -83,11 +89,15 @@ function handleGatewayMessage(data: WebSocket.RawData, token: string) {
 
 export function connectGateway() {
   const config = useRuntimeConfig();
+  const enabled = config.gatewayEnabled;
+  const retry = config.gatewayRetry;
   const url = config.gatewayUrl;
   const token = config.gatewayToken;
 
-  if (!url) {
-    console.warn('[gateway] OPENCLAW_GATEWAY_URL not set, skipping connection');
+  if (!enabled || !url) {
+    _status = 'disabled';
+    _lastError = null;
+    console.log('[gateway] OpenClaw gateway disabled; skipping WebSocket connection');
     return;
   }
 
@@ -98,6 +108,8 @@ export function connectGateway() {
 
   clearTimers();
 
+  _status = 'connecting';
+  _lastError = null;
   console.log(`[gateway] Connecting to ${url}...`);
 
   _ws = new WebSocket(url, {
@@ -106,6 +118,7 @@ export function connectGateway() {
 
   _ws.on('open', () => {
     console.log('[gateway] Connected, awaiting handshake...');
+    _status = 'connecting';
     clearTimers();
 
     // Send ping every 30s to keep the connection alive and measure latency
@@ -127,12 +140,15 @@ export function connectGateway() {
   _ws.on('message', data => handleGatewayMessage(data, token));
 
   _ws.on('error', (err) => {
-    console.error('[gateway] WebSocket error:', err.message);
+    _lastError = err.message;
+    _status = 'unavailable';
+    console.warn(`[gateway] OpenClaw gateway unavailable: ${err.message}`);
   });
 
   _ws.on('close', (code, reason) => {
     const wasConnected = _connected;
     _connected = false;
+    _status = 'unavailable';
     _connectedAt = null;
     _latencyMs = null;
     _lastPingAt = null;
@@ -141,11 +157,13 @@ export function connectGateway() {
 
     if (code === 1000 && wasConnected) {
       console.log('[gateway] Disconnected cleanly. Reconnecting in 5s...');
-    } else {
+      _reconnectTimer = setTimeout(connectGateway, 5000);
+    } else if (retry) {
       console.warn(`[gateway] Disconnected (code=${code}, reason="${reason?.toString() || 'none'}"). Reconnecting in 5s...`);
+      _reconnectTimer = setTimeout(connectGateway, 5000);
+    } else {
+      console.warn(`[gateway] Disconnected (code=${code}, reason="${reason?.toString() || 'none'}"). Retry disabled; continuing without OpenClaw gateway.`);
     }
-
-    _reconnectTimer = setTimeout(connectGateway, 5000);
   });
 }
 
