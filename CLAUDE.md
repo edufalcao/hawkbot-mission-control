@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Agent management dashboard for orchestrating AI agents (OpenClaw). Built with Nuxt 4, it provides a Kanban task board, team roster, memory browser, calendar, and live activity feed.
+Runtime-agnostic agent orchestration dashboard for Hermes CLI and OpenClaw. Built with Nuxt 4, it provides a Kanban task board, team roster, memory browser, calendar, settings/runtime health, and live activity feed.
 
 ## Tech Stack
 
@@ -10,7 +10,7 @@ Agent management dashboard for orchestrating AI agents (OpenClaw). Built with Nu
 - **UI:** Nuxt UI v4, TailwindCSS v4
 - **State/Data:** TanStack Vue Query (client caching/polling), Pinia (store-ready)
 - **Database:** SQLite via better-sqlite3 + Drizzle ORM
-- **Realtime:** WebSocket client (ws) + SSE broadcast
+- **Realtime:** Optional OpenClaw WebSocket client (ws) + local SSE broadcast
 - **Drag & Drop:** vue-draggable-plus (SortableJS)
 - **Language:** TypeScript (strict)
 - **Package Manager:** pnpm (>=10) — do NOT use npm or yarn
@@ -32,7 +32,7 @@ Always run `pnpm lint` and `pnpm typecheck` after making changes to verify corre
 
 ```
 app/                  # Frontend (Nuxt 4 app dir)
-  pages/              # Route pages (tasks, team, memory, calendar, office, content)
+  pages/              # Route pages (tasks, team, memory, calendar, office, activity, content)
   components/         # Reusable Vue components (PascalCase)
   layouts/            # Layout wrappers (default.vue with sidebar)
   plugins/            # Client plugins (vue-query setup)
@@ -41,7 +41,7 @@ server/               # Backend (Nitro)
   api/                # REST endpoints (method-suffixed: index.get.ts, [id].patch.ts)
   db/                 # Drizzle schema + SQLite connection
   plugins/            # Server startup (gateway, seeding)
-  utils/              # Gateway WebSocket client, SSE broadcast, seed data
+  utils/              # Runtime adapters, dispatcher, gateway client, SSE broadcast, seed data
 ```
 
 ## Coding Conventions
@@ -93,6 +93,7 @@ SQLite database at `./data/mission-control.db` (gitignored). Schema in `server/d
 ## Environment Variables
 
 Copy `.env.example` to `.env`. Key variables:
+- `OPENCLAW_GATEWAY_ENABLED` — `true` to enable optional OpenClaw gateway connection
 - `OPENCLAW_GATEWAY_URL` — WebSocket URL for OpenClaw gateway
 - `OPENCLAW_GATEWAY_TOKEN` — Auth token (from `~/.openclaw/openclaw.json`)
 - `DATABASE_PATH` — SQLite database file path
@@ -100,7 +101,9 @@ Copy `.env.example` to `.env`. Key variables:
 
 ## Key Patterns
 
-- **Gateway:** WebSocket client auto-connects on startup with 5s reconnect; all messages broadcast to SSE clients
-- **Seeding:** 5 default agents seeded on first run (idempotent)
+- **Gateway:** OpenClaw WebSocket connection is optional; when disabled/unavailable the app should not reconnect-loop noisily
+- **Runtime adapters:** Task dispatch goes through Hermes/OpenClaw/manual adapters; Hermes uses runtime defaults and must not pass a model override
+- **Dispatch observability:** Capture runtime duration, exit status, stdout/stderr tails, and update agent busy/idle usage stats
+- **Seeding:** Default agents are `HawkBot - Hermes` and `HawkBot - OpenClaw`; legacy `HawkBot`/`assistant` entries are reconciled idempotently
 - **Kanban DnD:** Local state synced from server → diff on drop → PATCH changed tasks → refetch
 - **Activity Feed:** Every mutation logs to `activityLog` + SSE broadcast for real-time updates

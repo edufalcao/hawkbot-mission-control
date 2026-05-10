@@ -50,6 +50,11 @@
           label="Office"
         />
         <NavItem
+          to="/activity"
+          icon="i-lucide-activity"
+          label="Activity"
+        />
+        <NavItem
           to="/settings"
           icon="i-lucide-settings"
           label="Settings"

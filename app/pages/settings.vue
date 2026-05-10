@@ -6,7 +6,7 @@
           Settings
         </h1>
         <p class="text-gray-400 text-sm mt-0.5">
-          Configure gateway connection and workspace
+          Configure runtime providers, gateway connection, and dispatch behavior
         </p>
       </div>
     </div>
@@ -24,13 +24,66 @@
 
     <div
       v-else
-      class="max-w-2xl space-y-8"
+      class="max-w-3xl space-y-8"
     >
-      <!-- Gateway Section -->
+      <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            <span class="i-lucide-heart-pulse w-5 h-5" />
+            Runtime Health
+          </h2>
+          <UButton
+            icon="i-lucide-refresh-cw"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :loading="runtimePending"
+            @click="refreshRuntimeHealth"
+          >
+            Refresh
+          </UButton>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            v-for="runtime in runtimeCards"
+            :key="runtime.provider"
+            class="rounded-lg border border-gray-700 bg-gray-900/60 p-4"
+          >
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <p class="text-sm font-semibold text-white">
+                  {{ runtime.label }}
+                </p>
+                <p class="text-xs text-gray-500 font-mono">
+                  {{ runtime.command }}
+                </p>
+              </div>
+              <UBadge
+                :color="runtime.ready ? 'success' : runtime.available ? 'warning' : 'error'"
+                size="xs"
+                variant="soft"
+              >
+                {{ runtime.ready ? 'Ready' : runtime.available ? 'Needs config' : 'Unavailable' }}
+              </UBadge>
+            </div>
+            <p class="text-xs text-gray-400">
+              {{ runtime.version || runtime.error || 'No version output' }}
+            </p>
+            <p
+              v-if="runtime.detail"
+              class="text-xs text-gray-500 mt-2"
+            >
+              {{ runtime.detail }}
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span class="i-lucide-radio w-5 h-5" />
-          Gateway Connection
+          OpenClaw Gateway
         </h2>
         <div class="space-y-4">
           <div>
@@ -42,7 +95,7 @@
               class="w-full"
             />
             <p class="text-xs text-gray-500 mt-1">
-              WebSocket URL for the OpenClaw gateway
+              Optional WebSocket URL for OpenClaw gateway features.
             </p>
           </div>
           <div>
@@ -64,14 +117,10 @@
                 />
               </template>
             </UInput>
-            <p class="text-xs text-gray-500 mt-1">
-              Auth token from ~/.openclaw/openclaw.json
-            </p>
           </div>
         </div>
       </section>
 
-      <!-- Workspace Section -->
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span class="i-lucide-folder w-5 h-5" />
@@ -86,12 +135,11 @@
             class="w-full"
           />
           <p class="text-xs text-gray-500 mt-1">
-            Path to your OpenClaw workspace directory
+            Path used by the memory browser and OpenClaw workspace integrations.
           </p>
         </div>
       </section>
 
-      <!-- Runtime Providers Section -->
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span class="i-lucide-bot w-5 h-5" />
@@ -107,19 +155,19 @@
               class="w-full"
             />
             <p class="text-xs text-gray-500 mt-1">
-              Per-agent runtime settings override this default.
+              Used only when an agent has no explicit runtime configured.
             </p>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Profile</label>
-            <UInput
-              v-model="form.hermes_default_profile"
-              placeholder="default, coding, research..."
-              size="lg"
-              class="w-full"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Default Profile</label>
+              <UInput
+                v-model="form.hermes_default_profile"
+                placeholder="default, coding, research..."
+                size="lg"
+                class="w-full"
+              />
+            </div>
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-1.5">Hermes Worktree Mode</label>
               <USelect
@@ -129,38 +177,28 @@
                 class="w-full"
               />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-1.5">OpenClaw Main Session ID</label>
-              <UInput
-                v-model="form.openclaw_main_session_id"
-                placeholder="OpenClaw session ID"
-                size="lg"
-                class="w-full"
-              />
-            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1.5">OpenClaw Main Session ID</label>
+            <UInput
+              v-model="form.openclaw_main_session_id"
+              placeholder="OpenClaw session ID"
+              size="lg"
+              class="w-full"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Legacy main_session_id is still read as a fallback, but new dispatches should use this field.
+            </p>
           </div>
         </div>
       </section>
 
-      <!-- Dispatch Section -->
       <section class="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span class="i-lucide-send w-5 h-5" />
           Task Dispatch
         </h2>
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1.5">Main Session ID</label>
-          <UInput
-            v-model="form.main_session_id"
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            size="lg"
-            class="w-full"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            OpenClaw session ID used when dispatching tasks to agents
-          </p>
-        </div>
-        <div class="mt-4">
           <label class="block text-sm font-medium text-gray-300 mb-1.5">Dispatch Prompt Template</label>
           <UTextarea
             v-model="form.dispatch_prompt_template"
@@ -181,7 +219,6 @@
         </div>
       </section>
 
-      <!-- Actions -->
       <div class="flex items-center gap-3">
         <UButton
           icon="i-lucide-save"
@@ -213,6 +250,23 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 
+interface RuntimeHealthItem {
+  provider: 'hermes' | 'openclaw',
+  command: string,
+  available: boolean,
+  version: string | null,
+  error: string | null,
+  ready: boolean,
+  details: Record<string, unknown>
+}
+
+interface RuntimeHealthReport {
+  runtimes: {
+    hermes: RuntimeHealthItem,
+    openclaw: RuntimeHealthItem
+  }
+}
+
 const queryClient = useQueryClient();
 
 const { data, isLoading } = useQuery({
@@ -220,11 +274,16 @@ const { data, isLoading } = useQuery({
   queryFn: () => $fetch<Record<string, string>>('/api/settings')
 });
 
+const { data: runtimeHealth, isFetching: runtimePending, refetch: refetchRuntimeHealth } = useQuery<RuntimeHealthReport>({
+  queryKey: ['runtime-health'],
+  queryFn: () => $fetch('/api/runtimes/health'),
+  refetchInterval: 30_000
+});
+
 const form = reactive({
   gateway_url: '',
   gateway_token: '',
   workspace_path: '',
-  main_session_id: '',
   openclaw_main_session_id: '',
   default_runtime_provider: 'openclaw',
   hermes_default_profile: '',
@@ -256,13 +315,32 @@ const saving = ref(false);
 const saveMessage = ref('');
 const saveError = ref(false);
 
-// Populate form when data loads
+const runtimeCards = computed(() => {
+  const runtimes = runtimeHealth.value?.runtimes;
+  if (!runtimes) return [];
+  return [
+    toRuntimeCard('Hermes', runtimes.hermes),
+    toRuntimeCard('OpenClaw', runtimes.openclaw)
+  ];
+});
+
+function refreshRuntimeHealth() {
+  refetchRuntimeHealth();
+}
+
+function toRuntimeCard(label: string, runtime: RuntimeHealthItem) {
+  const details = runtime.details || {};
+  const detail = runtime.provider === 'openclaw'
+    ? `Gateway: ${details.gatewayStatus || 'unknown'} · Session: ${details.sessionConfigured ? 'configured' : 'missing'}`
+    : `Profile: ${details.defaultProfile || 'default'} · Worktree: ${details.worktreeMode ? 'enabled' : 'disabled'}`;
+  return { ...runtime, label, detail };
+}
+
 watch(data, (val) => {
   if (val) {
     form.gateway_url = val.gateway_url || '';
     form.gateway_token = val.gateway_token || '';
     form.workspace_path = val.workspace_path || '';
-    form.main_session_id = val.main_session_id || '';
     form.openclaw_main_session_id = val.openclaw_main_session_id || val.main_session_id || '';
     form.default_runtime_provider = val.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = val.hermes_default_profile || '';
@@ -276,7 +354,6 @@ const hasChanges = computed(() => {
   return form.gateway_url !== (data.value.gateway_url || '')
     || form.gateway_token !== (data.value.gateway_token || '')
     || form.workspace_path !== (data.value.workspace_path || '')
-    || form.main_session_id !== (data.value.main_session_id || '')
     || form.openclaw_main_session_id !== (data.value.openclaw_main_session_id || data.value.main_session_id || '')
     || form.default_runtime_provider !== (data.value.default_runtime_provider || 'openclaw')
     || form.hermes_default_profile !== (data.value.hermes_default_profile || '')
@@ -289,7 +366,6 @@ function resetForm() {
     form.gateway_url = data.value.gateway_url || '';
     form.gateway_token = data.value.gateway_token || '';
     form.workspace_path = data.value.workspace_path || '';
-    form.main_session_id = data.value.main_session_id || '';
     form.openclaw_main_session_id = data.value.openclaw_main_session_id || data.value.main_session_id || '';
     form.default_runtime_provider = data.value.default_runtime_provider || 'openclaw';
     form.hermes_default_profile = data.value.hermes_default_profile || '';
@@ -310,7 +386,6 @@ async function saveSettings() {
         gateway_url: form.gateway_url,
         gateway_token: form.gateway_token,
         workspace_path: form.workspace_path,
-        main_session_id: form.main_session_id,
         openclaw_main_session_id: form.openclaw_main_session_id,
         default_runtime_provider: form.default_runtime_provider,
         hermes_default_profile: form.hermes_default_profile,
@@ -319,6 +394,7 @@ async function saveSettings() {
       }
     });
     queryClient.invalidateQueries({ queryKey: ['settings'] });
+    queryClient.invalidateQueries({ queryKey: ['runtime-health'] });
     saveMessage.value = 'Settings saved successfully';
   } catch (err: unknown) {
     saveError.value = true;

@@ -346,8 +346,8 @@ Add a new “Runtime Providers” section above “Task Dispatch” with:
 
 - Default Runtime Provider: `USelect` or simple `UInput` initially if Nuxt UI select typing is annoying.
 - Hermes Default Profile.
-- Hermes Default Model.
 - Hermes Worktree Mode.
+- Runtime health badges for CLI availability and required configuration.
 - OpenClaw Main Session ID.
 
 Do not remove the existing `main_session_id` field yet; mark it as legacy if duplicate.

@@ -16,7 +16,7 @@
 5. [Core Features](#5-core-features)
 6. [Multi-Agent Architecture](#6-multi-agent-architecture)
 7. [Agent Configuration](#7-agent-configuration)
-8. [OpenClaw Integration](#8-openclaw-integration)
+8. [Runtime Integrations](#8-runtime-integrations)
 9. [Data Model](#9-data-model)
 10. [API Design](#10-api-design)
 11. [UI/UX Specification](#11-uiux-specification)
@@ -439,7 +439,8 @@ A real-time event stream powered by Server-Sent Events (SSE).
 #### Architecture
 
 ```
-OpenClaw Gateway ──WebSocket──► Nitro Server ──SSE──► Browser
+Hermes/OpenClaw CLI ──spawn──► Nitro Server ──SSE──► Browser
+Optional OpenClaw Gateway ──WebSocket──► Nitro Server ──SSE──► Browser
                                      │
                               Activity Log DB
 ```
@@ -511,7 +512,7 @@ The `content_items` table already exists in the schema with fields for title, st
 
 ## 6. Multi-Agent Architecture
 
-### OpenClaw Agent Model
+### Runtime Agent Model
 
 OpenClaw supports multiple agents via the `agents.list` configuration in `~/.openclaw/openclaw.json`:
 
@@ -684,21 +685,19 @@ A form in the Team page lets users:
 
 Pre-built agent templates users can one-click install:
 
-| Template | Role | Model | Tools | SOUL.md |
-|----------|------|-------|-------|---------|
-| Fullstack Dev | developer | claude-sonnet | exec, read, write, edit, web_search | Coding-focused personality |
-| Researcher | researcher | claude-sonnet | web_search, web_fetch, read, write | Analysis-focused personality |
-| Writer | writer | claude-sonnet | read, write, web_search | Content-focused personality |
-| Ops/DevOps | operator | claude-haiku | exec, read, write | Automation-focused personality |
+| Template | Role | Runtime | Tools | SOUL.md |
+|----------|------|---------|-------|---------|
+| HawkBot - Hermes | assistant | Hermes defaults | Hermes configured tools | Orchestration-focused personality |
+| HawkBot - OpenClaw | assistant | OpenClaw defaults | OpenClaw configured tools | Orchestration-focused personality |
 | Custom | — | user choice | user choice | Blank template |
 
 ---
 
-## 8. OpenClaw Integration
+## 8. Runtime Integrations
 
 ### Gateway WebSocket Connection
 
-Mission Control maintains a persistent WebSocket connection to the OpenClaw Gateway.
+Mission Control treats the OpenClaw Gateway as optional. Hermes/OpenClaw dispatch works through runtime adapters; the gateway is only required for gateway-native OpenClaw features.
 
 #### Connection Lifecycle
 
@@ -966,7 +965,7 @@ Used for:
 - **Sidebar:** Fixed left, 240px wide, dark gray-900 background
 - **Logo:** Top of sidebar — emoji + "Mission Control" + instance name
 - **Navigation:** Icon + label links with active state highlighting (primary color background)
-- **Live indicator:** Bottom of sidebar — green dot + "Gateway connected" (or red + "Disconnected")
+- **Live indicator:** Bottom of sidebar — shows optional OpenClaw gateway state without treating disabled gateway as fatal
 - **Main content:** Scrollable, padded (24px), gray-950 background
 
 ### Page Specifications
@@ -1051,6 +1050,7 @@ Used for:
 #### Settings Page (`/settings`) — Phase 2
 
 **Sections:**
+- **Runtime Health:** Hermes/OpenClaw CLI availability, OpenClaw session configured/missing, optional gateway state
 - **Gateway:** URL, token (masked), connection status, test button
 - **Workspace:** Path, browse button
 - **Team:** Import from OpenClaw button, export config
@@ -1251,7 +1251,7 @@ Mission Control explicitly does **NOT** aim to be:
 
 2. **A code editor** — It does not embed Monaco/CodeMirror for editing code. Agents have their own workspaces and tools for that.
 
-3. **A model playground** — It does not let you test prompts or compare model outputs. Use Claude.ai, OpenRouter, or dedicated tools for that.
+3. **A model playground** — It does not let you test prompts or compare model outputs. Runtime model selection belongs to Hermes/OpenClaw configuration, not Mission Control.
 
 4. **A cloud service** — It runs locally on the user's machine. There is no hosted version, no user accounts, no multi-tenant architecture. One instance = one user.
 

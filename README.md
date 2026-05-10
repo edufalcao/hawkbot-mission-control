@@ -1,8 +1,8 @@
 # 🦅 HawkBot Mission Control
 
-> Agent management dashboard for OpenClaw — Tasks, Calendar, Memory, Team, and Office in a single interface.
+> Runtime-agnostic agent management dashboard for Hermes and OpenClaw — Tasks, Calendar, Memory, Team, Office, and Activity in a single interface.
 
-Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, connected to the **OpenClaw Gateway** via WebSocket.
+Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM**, with optional **OpenClaw Gateway** WebSocket integration and local **Hermes CLI** dispatch support.
 
 ---
 
@@ -17,19 +17,20 @@ Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 | Styling | TailwindCSS (via Nuxt UI) |
 | API/Backend | Nitro (built-in Nuxt) |
 | Database | SQLite + Drizzle ORM (`better-sqlite3`) |
-| Realtime | WebSocket → OpenClaw Gateway + SSE |
+| Realtime | Optional OpenClaw WebSocket Gateway + local SSE |
 
 ---
 
 ## Features
 
 - **Tasks Board** — Kanban with 4 columns: To Do, In Progress, Review, Done. Assignee per agent or user.
-- **Calendar** — Visualization of all cron jobs from the OpenClaw Gateway.
+- **Calendar** — Visualization of scheduled/cron jobs from Mission Control or the optional OpenClaw Gateway.
 - **Memory** — Visual browser for all memory files in the workspace (`.md`), with search.
 - **Team** — Agent roster with real-time status, runtime, specialties, and stats.
 - **Office** — Gamified view of agents working at their desktops.
 - **Content Pipeline** — *(Phase 2)* Content creation pipeline: Idea → Script → Thumbnail → Published.
-- **Live Feed** — Real-time event stream via SSE connected to the Gateway.
+- **Activity** — Runtime/task audit log with captured dispatch metadata, stdout/stderr tails, and SSE updates.
+- **Runtime Health** — Settings badges for Hermes/OpenClaw CLI availability, gateway state, and required runtime configuration.
 
 ---
 
@@ -37,7 +38,7 @@ Built with **Nuxt 4** + **Nuxt UI** + **TanStack Query** + **SQLite/Drizzle ORM*
 
 - Node.js v24+
 - pnpm v10+
-- [OpenClaw](https://github.com/openclaw/openclaw) installed and gateway running
+- Hermes CLI and/or [OpenClaw](https://github.com/openclaw/openclaw), depending on which runtime providers you want to use
 
 ---
 
@@ -53,17 +54,15 @@ pnpm install
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env with your gateway URL and token
+# Edit .env if you want OpenClaw gateway integration or a custom database/workspace path
 ```
 
 ### Environment variables
 
 ```env
-# OpenClaw Gateway URL (WebSocket)
+# Optional OpenClaw Gateway integration
+OPENCLAW_GATEWAY_ENABLED=false
 OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
-
-# Gateway authentication token
-# Found at: ~/.openclaw/openclaw.json → gateway.auth.token
 OPENCLAW_GATEWAY_TOKEN=your-token-here
 
 # SQLite database path
@@ -99,7 +98,7 @@ pm2 start "pnpm preview" --name mission-control
 ```
 hawkbot-mission-control/
 ├── app/
-│   ├── pages/              # Routes: tasks, calendar, memory, team, office, content
+│   ├── pages/              # Routes: tasks, calendar, memory, team, office, activity, content
 │   ├── composables/
 │   │   └── useEventStream.ts # SSE composable (singleton EventSource, ref-counted)
 │   ├── components/
@@ -112,9 +111,10 @@ hawkbot-mission-control/
 ├── server/
 │   ├── api/
 │   │   ├── tasks/          # CRUD for tasks (GET, POST, PATCH, DELETE)
-│   │   ├── calendar/       # Gateway cron jobs
+│   │   ├── calendar/       # Cron/scheduled jobs
 │   │   ├── memory/         # .md workspace file browser
 │   │   ├── team/           # Agents (team members)
+│   │   ├── runtimes/       # Runtime health probes
 │   │   └── activity/       # Activity log + SSE stream
 │   ├── db/
 │   │   ├── schema.ts       # Drizzle schema (tasks, content, team, activity)
@@ -123,8 +123,10 @@ hawkbot-mission-control/
 │   │   ├── startup.ts      # Initialization: connects gateway, seeds team
 │   │   └── autoWatcher.ts  # 5-min sweeper for undispatched todo tasks
 │   └── utils/
-│       ├── gateway.ts      # WebSocket client + SSE broadcast
-│       ├── dispatcher.ts   # Event-driven task dispatch to agents
+│       ├── gateway.ts      # Optional OpenClaw WebSocket client + SSE broadcast
+│       ├── runtimeHealth.ts # Hermes/OpenClaw availability probes
+│       ├── runtimes/       # Runtime adapters for Hermes, OpenClaw, manual agents
+│       ├── dispatcher.ts   # Event-driven task dispatch with output capture
 │       └── seed.ts         # Default team seeding (humans + agents)
 ├── data/                   # SQLite database (gitignored)
 ├── .env.example
@@ -135,14 +137,11 @@ hawkbot-mission-control/
 
 ## Default Team (auto-seeded)
 
-| Member | Type | Role | Model | Specialties |
-|--------|------|------|-------|-------------|
-| 👤 Eduardo | human | owner | — | Management, review, planning |
-| 🦅 HawkBot | agent | assistant | claude-sonnet | Orchestration, planning, memory |
-| 💻 Dev Agent | agent | developer | claude-sonnet | JS, Nuxt, TypeScript, Node |
-| 🔍 Research Agent | agent | researcher | claude-sonnet | Web search, analysis, summarization |
-| ⚙️ Ops Agent | agent | operator | claude-sonnet | Cron, monitoring, infra, automation |
-| ✍️ Writer Agent | agent | writer | claude-sonnet | Docs, reports, posts, scripts |
+| Member | Type | Role | Runtime | Specialties |
+|--------|------|------|---------|-------------|
+| 👤 Eduardo | human | owner | manual | Management, review, planning |
+| 🦅 HawkBot - Hermes | agent | assistant | Hermes | Orchestration, planning, memory |
+| 🦅 HawkBot - OpenClaw | agent | assistant | OpenClaw | Orchestration, planning, memory |
 
 ---
 
@@ -161,7 +160,10 @@ docker compose up -d
 - [x] Memory browser (workspace .md files)
 - [x] Team view (agents)
 - [x] Office view (gamified)
-- [x] Live Feed (SSE)
+- [x] Live Feed / Activity page (SSE + audit log)
+- [x] Runtime health badges for Hermes and OpenClaw
+- [x] Dispatch observability (duration, exit code, stdout/stderr tails)
+- [x] Agent busy/idle usage and success stats
 - [x] Drag-and-drop on Kanban (SortableJS via vue-draggable-plus)
 - [x] SSE-driven dashboard updates (replaced polling)
 - [x] Event-driven agent dispatch (immediate dispatch + 5-min sweeper fallback)

@@ -107,7 +107,9 @@ function runMigrations(sqlite: Database.Database) {
     'ALTER TABLE team_members ADD COLUMN runtime_command TEXT',
     'ALTER TABLE team_members ADD COLUMN runtime_workdir TEXT',
     'ALTER TABLE team_members ADD COLUMN openclaw_agent_id TEXT',
-    'ALTER TABLE team_members ADD COLUMN agent_dir TEXT'
+    'ALTER TABLE team_members ADD COLUMN agent_dir TEXT',
+    'ALTER TABLE team_members ADD COLUMN usage_count INTEGER DEFAULT 0',
+    'ALTER TABLE team_members ADD COLUMN success_count INTEGER DEFAULT 0'
   ];
   for (const sql of alterations) {
     try {

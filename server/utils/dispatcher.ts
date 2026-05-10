@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { tasks, teamMembers, activityLog, settings } from '../db/schema';
 import type { useDb } from '../db';
 import { broadcastToClients } from './gateway';
@@ -132,6 +132,17 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
     return;
   }
 
+  const startedAt = Date.now();
+  const stdoutChunks: string[] = [];
+  const stderrChunks: string[] = [];
+
+  db.update(teamMembers).set({
+    status: 'busy',
+    currentTaskId: task.id,
+    lastUsed: new Date(startedAt).toISOString(),
+    usageCount: sql`${teamMembers.usageCount} + 1`
+  }).where(eq(teamMembers.id, agent.id)).run();
+
   const child = spawn(spawnPlan.command, spawnPlan.args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: true,
@@ -139,32 +150,83 @@ function spawnAgent(task: TaskRow, agent: RuntimeAgent, settingsMap: RuntimeSett
     env: { ...process.env, ...spawnPlan.env }
   });
 
+  child.stdout?.on('data', data => appendOutput(stdoutChunks, data));
+  child.stderr?.on('data', data => appendOutput(stderrChunks, data));
+
   child.unref();
 
   child.on('error', (err) => {
     _dispatching.delete(task.id);
+    resetAgentAfterDispatch(agent.id, db, false);
     console.error(`[dispatcher] Spawn error for "${task.title}" via ${provider}: ${err.message}`);
     revertDispatch(task, db, `Task "${task.title}" dispatch failed via ${provider}, reverted to todo`, {
       provider,
       command: spawnPlan.displayCommand,
-      error: err.message
+      error: err.message,
+      durationMs: Date.now() - startedAt,
+      stdoutTail: tailOutput(stdoutChunks),
+      stderrTail: tailOutput(stderrChunks)
     });
   });
 
   child.on('close', (code) => {
     _dispatching.delete(task.id);
+    const durationMs = Date.now() - startedAt;
+    const stdoutTail = tailOutput(stdoutChunks);
+    const stderrTail = tailOutput(stderrChunks);
 
     if (code === 0) {
+      resetAgentAfterDispatch(agent.id, db, true);
       console.log(`[dispatcher] Success: "${task.title}" via ${provider}`);
+      const logEntry = {
+        id: uuidv4(),
+        type: 'agent_completed' as const,
+        actor: agent.name,
+        message: `Task "${task.title}" completed by ${provider} runtime`,
+        taskId: task.id,
+        metadata: JSON.stringify({
+          provider,
+          command: spawnPlan.displayCommand,
+          durationMs,
+          stdoutTail,
+          stderrTail
+        }),
+        createdAt: new Date().toISOString()
+      };
+      db.insert(activityLog).values(logEntry).run();
+      broadcastToClients({ event: 'agent_completed', task, log: logEntry });
     } else {
+      resetAgentAfterDispatch(agent.id, db, false);
       console.error(`[dispatcher] Failed: "${task.title}" via ${provider} (code ${code})`);
       revertDispatch(task, db, `Task "${task.title}" dispatch failed via ${provider}, reverted to todo`, {
         provider,
         command: spawnPlan.displayCommand,
-        exitCode: code
+        exitCode: code,
+        durationMs,
+        stdoutTail,
+        stderrTail
       });
     }
   });
+}
+
+function appendOutput(chunks: string[], data: Buffer | string) {
+  chunks.push(data.toString());
+  while (chunks.join('').length > 8000) chunks.shift();
+}
+
+function tailOutput(chunks: string[]) {
+  const output = chunks.join('').trim();
+  if (!output) return '';
+  return output.slice(-4000);
+}
+
+function resetAgentAfterDispatch(agentId: string, db: Db, succeeded: boolean) {
+  db.update(teamMembers).set({
+    status: 'idle',
+    currentTaskId: null,
+    ...(succeeded ? { successCount: sql`${teamMembers.successCount} + 1` } : {})
+  }).where(eq(teamMembers.id, agentId)).run();
 }
 
 const DEFAULT_DISPATCH_PROMPT = `New task from Mission Control:
